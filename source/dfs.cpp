@@ -36,6 +36,6 @@ bool is_connected(const ugraph& g) {
 		}
 	}
 
-	delete base;
+	delete[] base;
 	return number_seen==number_of_nodes;
 }
