@@ -1,6 +1,8 @@
 #include "triconnectivity.hpp"
 #include "LEDA/graph/node_array.h"
 #include "LEDA/graph/edge_array.h"
+#include <fstream>
+#include <ostream>
 
 using namespace leda;
 
@@ -36,6 +38,38 @@ public:
 		delete[] lowpoint_two;
 		delete[] number_descendants;
 		delete[] father;
+	};
+
+	void to_dot(std::ostream& out) {
+		out << "digraph G {" << std:: endl;
+		node n;
+		forall_nodes(n,the_graph) {
+			out << "\tnode" << number[n] << " [label = \"" << number[n] << "\"]" << std::endl;
+		}
+
+		edge e;
+		forall_edges(e,the_graph) {
+			int v,w;
+			const node n = source(e);
+			const node u = target(e);
+			if (number[n] < number[u]) {
+				v = number[n];
+				w = number[u];
+			} else {
+				v = number[u];
+				w = number[n];
+			}
+			if (is_frond[e]) {
+				swap(v,w);
+			}
+			out << "\tnode" << v << " -> " << "node" << w;
+			if (is_frond[e])
+				out << " [constraint = false]";
+			out << std::endl;// << " [label = \"" << ++i << "\"]" << endl;
+		}
+
+
+		out << "}" << std::endl;
 	};
 
 private:
@@ -114,5 +148,7 @@ private:
 };
 
 void test(ugraph& g) {
+	std::fstream f("./the_palm_tree.dot", std::ios::out);
 	palm_tree p(g);
+	p.to_dot(f);
 }
