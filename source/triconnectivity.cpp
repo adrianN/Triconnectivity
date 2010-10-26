@@ -23,12 +23,12 @@ auto_ptr<list<two_tuple<node,node> > > naive_separation_pairs(ugraph& g) {
 	assert(is_connected(g));
 	node u;
 	auto_ptr<list<two_tuple<node,node> > > pairs(new list<two_tuple<node,node> >());
-	forall_nodes(u,g) {
+	forall_nodes(u,g) { //remove one node
 		list<edge> adj_edges = g.adj_edges(u);
 		g.hide_node(u);
 
 		node v;
-		forall_nodes(v,g) {
+		forall_nodes(v,g) { //remove another node
 			list<edge> adj_edges = g.adj_edges(v);
 			g.hide_node(v);
 
