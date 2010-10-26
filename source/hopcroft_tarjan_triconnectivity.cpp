@@ -44,7 +44,17 @@ public:
 		out << "digraph G {" << std:: endl;
 		node n;
 		forall_nodes(n,the_graph) {
-			out << "\tnode" << number[n] << " [label = \"" << number[n] << "\"]" << std::endl;
+			int num = number[n];
+			/*
+			 * +--------------------+
+			 * | Parent             |
+			 * +--------------------+
+			 * | LP1 | LP2 | #desc. |
+			 * +--------------------+
+			 * | Node               |
+			 * +--------------------+
+			 */
+			out << "\tnode" << num << " [shape = record, label = \"{" << father[num] << " | {" << lowpoint_one[num] << " | " << lowpoint_two[num] << " | " << number_descendants[num]	<< " } |" << num << "}\"]" << std::endl;
 		}
 
 		edge e;
@@ -64,8 +74,8 @@ public:
 			}
 			out << "\tnode" << v << " -> " << "node" << w;
 			if (is_frond[e])
-				out << " [constraint = false]";
-			out << std::endl;// << " [label = \"" << ++i << "\"]" << endl;
+				out << " [constraint = false, color = \"red\"]";
+			out << std::endl;
 		}
 
 
