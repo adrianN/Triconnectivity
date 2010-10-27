@@ -35,12 +35,12 @@ public:
 		dfs(the_graph.first_node(), -1);
 		delete[] flag;
 
-		edge_array<unsigned int> phi_value(the_graph);
+		edge_array</*unsigned */int> phi_value(the_graph); //another bug in LEDA, unsigned ints are not integral.
 		edge e;
 		forall_edges(e,the_graph) {
 			phi_value[e] = phi(e);
 		}
-		//the_graph.bucket_sort_edges(phi_value);
+		the_graph.bucket_sort_edges(phi_value);
 	};
 
 	~palm_tree() {
