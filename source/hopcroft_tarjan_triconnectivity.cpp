@@ -3,6 +3,9 @@
 #include "LEDA/graph/edge_array.h"
 #include <fstream>
 #include <ostream>
+#include <memory>
+
+using std::auto_ptr;
 
 using namespace leda;
 
@@ -14,15 +17,15 @@ using namespace leda;
 class palm_tree {
 public:
 
-	palm_tree(const ugraph& g) :
+	palm_tree(ugraph& g) :
 		the_graph(g),
-		number(g,-1),
-		is_frond(g,false),
-		lowpoint_one(new unsigned int[g.number_of_nodes()]),
-		lowpoint_two(new unsigned int[g.number_of_nodes()]),
-		flag(new bool[g.number_of_nodes()]),
-		number_descendants(new unsigned int[g.number_of_nodes()]),
-		father(new unsigned int[g.number_of_nodes()])
+		number(the_graph,-1),
+		is_frond(the_graph,false),
+		lowpoint_one(new unsigned int[the_graph.number_of_nodes()]),
+		lowpoint_two(new unsigned int[the_graph.number_of_nodes()]),
+		flag(new bool[the_graph.number_of_nodes()]),
+		number_descendants(new unsigned int[the_graph.number_of_nodes()]),
+		father(new unsigned int[the_graph.number_of_nodes()])
 	{
 		n=0;
 		//we depend on flag for conditionals
@@ -31,6 +34,13 @@ public:
 		}
 		dfs(the_graph.first_node(), -1);
 		delete[] flag;
+
+		edge_array<unsigned int> phi_value(the_graph);
+		edge e;
+		forall_edges(e,the_graph) {
+			phi_value[e] = phi(e);
+		}
+		//the_graph.bucket_sort_edges(phi_value);
 	};
 
 	~palm_tree() {
@@ -91,7 +101,7 @@ private:
 	 *
 	 * The second argument is an int because parents already have a number.
 	 */
-	void dfs(const node& node_v,  int u) {
+	void dfs(const node& node_v, const int u) {
 
 		number[node_v] = n++;
 
@@ -142,8 +152,16 @@ private:
 		}
 	};
 
+	unsigned int phi(const edge& e) const {
+		const unsigned int v = number[source(e)];
+		const unsigned int w = number[target(e)];
+		if (is_frond[e]) return 2*w+1;
+		if (lowpoint_two[w] < v) return 2*lowpoint_one[w];
+		return 2*lowpoint_one[w]+1;
+	}
+
 	unsigned int n;
-	const ugraph& the_graph;
+	ugraph& the_graph;
 	node_array<int> number; //stores the step in which a node is reached during DFS
 
 	edge_array<bool> is_frond; //true if edge is a frond.
