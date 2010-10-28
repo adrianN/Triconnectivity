@@ -18,36 +18,63 @@ class palm_tree {
 public:
 
 	palm_tree(ugraph& g) :
+		number_of_nodes((assert(g.number_of_nodes()>=0), g.number_of_nodes())),
+		n(0),
+		m(number_of_nodes),
 		the_graph(g),
 		number(the_graph,-1),
 		is_frond(the_graph,false),
-		lowpoint_one(new unsigned int[the_graph.number_of_nodes()]),
-		lowpoint_two(new unsigned int[the_graph.number_of_nodes()]),
-		flag(new bool[the_graph.number_of_nodes()]),
-		number_descendants(new unsigned int[the_graph.number_of_nodes()]),
-		father(new unsigned int[the_graph.number_of_nodes()])
+		lowpoint_one(new unsigned int[number_of_nodes]),
+		lowpoint_two(new unsigned int[number_of_nodes]),
+		flag(new bool[number_of_nodes]),
+		number_descendants(the_graph,0),
+		father(new unsigned int[number_of_nodes]),
+		highpoint(new int[number_of_nodes])
+
 	{
-		n=0;
+
+		/*
+		 * Step one, compute information and reorder edges
+		 */
+
 		//we depend on flag for conditionals
-		for(int i=0; i<the_graph.number_of_nodes(); i++) {
+		for(unsigned int i=0; i<number_of_nodes; i++) {
 			flag[i] = false;
 		}
+		father[0] = 0xDEAD;
 		dfs(the_graph.first_node(), -1);
 		delete[] flag;
 
-		edge_array</*unsigned */int> phi_value(the_graph); //another bug in LEDA, unsigned ints are not integral.
+		edge_array</*unsigned*/ int> phi_value(the_graph); //another bug in LEDA, unsigned ints are not integral.
 		edge e;
 		forall_edges(e,the_graph) {
 			phi_value[e] = phi(e);
 		}
+
 		the_graph.bucket_sort_edges(phi_value);
+		the_graph.bucket_sort_nodes(number);
+
+		/*
+		 * Step two
+		 */
+		for(unsigned int i = 0; i<number_of_nodes; i++) {
+			highpoint[i] = -1;
+		}
+		edge_array<unsigned int> belongs_to_path(the_graph,0);
+		unsigned int current_path=1;
+		bool s=true;
+		assert(m<=number_of_nodes);
+		pathfinder(the_graph.first_node(), belongs_to_path,current_path,s);
+
+		the_graph.bucket_sort_nodes(number);
+
 	};
 
 	~palm_tree() {
 		delete[] lowpoint_one;
 		delete[] lowpoint_two;
-		delete[] number_descendants;
 		delete[] father;
+		delete[] highpoint;
 	};
 
 	void to_dot(std::ostream& out) {
@@ -64,7 +91,14 @@ public:
 			 * | Node               |
 			 * +--------------------+
 			 */
-			out << "\tnode" << num << " [shape = record, label = \"{" << father[num] << " | {" << lowpoint_one[num] << " | " << lowpoint_two[num] << " | " << number_descendants[num]	<< " } |" << num << "}\"]" << std::endl;
+			out << "\tnode";
+			out << num;
+			out << " [shape = record, label = \"{";
+			out << father[num];
+			out << " | {" << lowpoint_one[num];
+			out << " | " << lowpoint_two[num];
+			out << " | " << number_descendants[n];
+			out << " } |" << num << "}\"]" << std::endl;
 		}
 
 		edge e;
@@ -111,7 +145,7 @@ private:
 		//addition a
 		lowpoint_one[v] = v;
 		lowpoint_two[v] = v;
-		number_descendants[v] = 1; //why a one here? we don't know yet if there are any descendants. Maybe this also counts v as its zeroth descendant
+		number_descendants[node_v] = 1; //why a one here? we don't know yet if there are any descendants. Maybe this also counts v as its zeroth descendant
 
 		edge wv;
 		forall_adj_edges(wv,node_v) {
@@ -134,7 +168,7 @@ private:
 				} else {
 					lowpoint_two[v] = (lowpoint_two[v] < lowpoint_one[w]) ? lowpoint_two[v] : lowpoint_one[w];
 				}
-				number_descendants[v] += number_descendants[w];
+				number_descendants[node_v] += number_descendants[node_w];
 				father[w] = v;
 
 			} else if ((unsigned int)w < v && ((w!=u) || flag[v]) ) {
@@ -152,6 +186,40 @@ private:
 		}
 	};
 
+	void pathfinder(node node_v, edge_array<unsigned int>& belongs_to_path, unsigned int& current_path, bool& s) {
+		assert(m>=0 && m <=number_of_nodes);
+		int v = m - number_descendants[node_v] /* +1 */; //unsure if +1, we start numbering with zero
+		assert(v>=0);
+		assert((unsigned int)v<number_of_nodes);
+		number[node_v] = v;
+		{
+			edge e;
+			forall_adj_edges(e,node_v) {
+				if (belongs_to_path[e]!=0) continue;
+				node node_w = target(e);
+				if (node_w==node_v) node_w = source(e);
+
+				if (s) {
+					s = false;
+					current_path++;
+				}
+
+				belongs_to_path[e] = current_path;
+				if (!is_frond[e]) {
+					pathfinder(node_w, belongs_to_path, current_path, s);
+					m--;
+				} else {
+					unsigned int w = number[node_w];
+					if (highpoint[v] == -1) {
+						highpoint[w] = v;
+					}
+					s = true;
+				}
+			}
+		}
+
+	}
+
 	unsigned int phi(const edge& e) const {
 		const unsigned int v = number[source(e)];
 		const unsigned int w = number[target(e)];
@@ -160,23 +228,24 @@ private:
 		return 2*lowpoint_one[w]+1;
 	}
 
-	unsigned int n;
+	const unsigned int number_of_nodes;
+	unsigned int n,m;
 	ugraph& the_graph;
 	node_array<int> number; //stores the step in which a node is reached during DFS
 
 	edge_array<bool> is_frond; //true if edge is a frond.
 
-	//todo reconsider whether these two should be node_array<int>, node_array<node>
 	unsigned int* const lowpoint_one; //stores for each node the first lowpoint
 	unsigned int* const lowpoint_two;
 	bool* const flag; //becomes true when the entry in adj(v) corresponding to tree arc (u,v) is examined
-	unsigned int* const number_descendants;
+	node_array<unsigned int> number_descendants;
 	unsigned int* const father;
+	int* const highpoint;
 
 };
 
 void test(ugraph& g) {
-	std::fstream f("./the_palm_tree.dot", std::ios::out);
+	std::fstream f("./the_palm_tree.dot", std::ios::trunc | std::ios::out);
 	palm_tree p(g);
 	p.to_dot(f);
 }
