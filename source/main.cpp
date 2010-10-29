@@ -54,6 +54,21 @@ auto_ptr<ugraph> sample_graph(void) {
 			}
 		}
 	}
+	{
+	node n;
+	cout << g->first_node()->id();
+	forall_nodes(n,*g) {
+		cout << " " << n->id();
+	}
+	cout << endl;
+	}
+	{ 	edge_array<int> edges(*g);
+		edge e;
+		forall_edges(e,*g) {
+			edges[e] = target(e)->id();
+		}
+		g->bucket_sort_edges(edges);
+	}
 	return g;
 }
 
@@ -77,7 +92,7 @@ int main(void) {
 
 	cout << "==" << 0 << "==" <<endl;
 	cout << is_connected(g) << endl;
-	cout << naive_is_triconnected(g) << endl;
+//	cout << naive_is_triconnected(g) << endl;
 	test(g);
 
 
