@@ -27,8 +27,10 @@ using std::auto_ptr;
 auto_ptr<ugraph> sample_graph(void) {
 	auto_ptr<ugraph> g(new ugraph());
 	node nodes[13];
-	for(unsigned int i=0; i<13; i++)
+	for(unsigned int i=0; i<13; i++) {
 		nodes[i] = g->new_node();
+		cout << "Create node " << nodes[i]->id() << endl;
+	}
 	int edges[13][6] = {
 			{1,3,7,11,12,-1},
 			{12,2,-1,-1,-1,-1},
@@ -55,20 +57,24 @@ auto_ptr<ugraph> sample_graph(void) {
 	return g;
 }
 
+void to_file(const ugraph& g, const char* name) {
+	std::ostringstream s;
+	s << "./graph" << name << ".dot";
+	std::fstream f(s.str().c_str(),std::ios_base::out);
+	simple_to_dot(g, f);
+}
+
 int main(void) {
-	ugraph g;
+	ugraph g = *sample_graph();
 	const double p = 0.5;
 	const unsigned int n = 10;
 	const unsigned int m = (int)(((double)(n*(n-1))*p)/2.0);
 	cout << "n, m " << n << ", "<<m<<endl;
 	float total = used_time();
 
-	random_graph(g,n,m,false,true,false);
+//	random_graph(g,n,m,false,true,false);
+	to_file(g,"0");
 
-	std::ostringstream s;
-	s << "./graph" << 0 << ".dot";
-	std::fstream f(s.str().c_str(),std::ios_base::out);
-	to_dot(g, f);
 	cout << "==" << 0 << "==" <<endl;
 	cout << is_connected(g) << endl;
 	cout << naive_is_triconnected(g) << endl;

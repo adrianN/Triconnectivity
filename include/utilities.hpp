@@ -12,5 +12,6 @@
 #include <ostream>
 
 void to_dot(const leda::ugraph& g, std::ostream& output);
+void simple_to_dot(const leda::ugraph& g, std::ostream& output);
 
 #endif /* UTILITIES_HPP_ */
