@@ -24,7 +24,7 @@
 <tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.721980346" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
 <option id="gnu.cpp.compiler.option.include.paths.185800403" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 <listOptionValue builtIn="false" value="/home/adrian/LEDA/incl"/>
-<listOptionValue builtIn="false" value="&quot;${workspace_loc:/Generate Graphs/include}&quot;"/>
+<listOptionValue builtIn="false" value="&quot;${workspace_loc:/GenerateGraphs/include}&quot;"/>
 </option>
 <option id="gnu.cpp.compiler.option.optimization.level.633621890" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 <option id="gnu.cpp.compiler.option.warnings.pedantic.1965342864" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
