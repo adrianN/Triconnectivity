@@ -9,7 +9,7 @@ using namespace leda;
  * the graph is no longer connected if u and v are removed. i.e.
  * there exists a pair of nodes x,y s.t. all paths between x,y pass through u or v.
  */
-bool naive_is_triconnected(ugraph& g) {
+bool naive_is_triconnected(const ugraph& g) {
 	if (!is_connected(g)) return false;
 	auto_ptr<list<two_tuple<node,node> > > sep_pairs =naive_separation_pairs(g);
 	bool b = sep_pairs->length()==0;
@@ -19,7 +19,9 @@ bool naive_is_triconnected(ugraph& g) {
 
 
 /* Return a list of all separation pairs of g. Precondition: g is connected */
-auto_ptr<list<two_tuple<node,node> > > naive_separation_pairs(ugraph& g) {
+auto_ptr<list<two_tuple<node,node> > > naive_separation_pairs(const ugraph& h) {
+	ugraph g;
+	CopyGraph(g,h);
 	assert(is_connected(g));
 	node u;
 	auto_ptr<list<two_tuple<node,node> > > pairs(new list<two_tuple<node,node> >());
