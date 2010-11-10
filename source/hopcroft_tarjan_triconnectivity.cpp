@@ -393,6 +393,27 @@ private:
                     // add all the nodes from w's subtree to v's descendants
                     number_descendants[node_v] += number_descendants[node_w];
 
+                    /* Here I check for biconnectedness. If a graph is biconnected, v -> w => lowpoint_one[w] < v, unless v=1. In that case lowpoint_one[w] = v = 1
+                     * If lowpoint_one[w] >= v, we can cut v out of the graph and separate w (and its descendants) from the rest, since there is no path back beyond v
+                     * This biconnectedness test is most likely not exhaustive. I'm waiting for a bugfix in LEDA TODO
+                     */
+                    if (is_biconnected) {
+    					if (v!=1) {
+    						is_biconnected &= lowpoint_one[w] < v;
+    					} else {
+    						is_biconnected &= lowpoint_one[w] == v;
+    					}
+    					if (!is_biconnected) {
+    						std::cout << "graph is not biconnected ";
+    						if (v==1) {
+    							std::cout << "v is root and" << w << " has lowpoint " << lowpoint_one[w] << std::endl;
+    						} else {
+    							std::cout << "edge from " << v  << " to " << w << " lowpoint_one[w] " << lowpoint_one[w] << std::endl;
+    						}
+    						articulation_point = node_at[v];
+    					}
+                    }
+
                 } else if ((unsigned int)w < v && ((w!=parent) || seen_edge_to_parent[v]) ) {
                     /* In this case we have already seen w. We need to check whether the back-edge qualifies as a frond.
                      * An edge v --> w is a frond if w -*> v is a path in the tree (and v -- w -* v is a circle in the graph).
@@ -431,26 +452,7 @@ private:
                 	seen_edge_to_parent[v] = true;
                 }
 
-                /* Here I check for biconnectedness. If a graph is biconnected, v -> w => lowpoint_one[w] < v, unless v=1. In that case lowpoint_one[w] = v = 1
-                 * If lowpoint_one[w] >= v, we can cut v out of the graph and separate w (and its descendants) from the rest, since there is no path back beyond v
-                 * This biconnectedness test is most likely not exhaustive. I'm waiting for a bugfix in LEDA TODO
-                 */
-                if (is_biconnected) {
-					if (v!=1) {
-						is_biconnected &= lowpoint_one[w] < v;
-					} else {
-						is_biconnected &= lowpoint_one[w] == v;
-					}
-					if (!is_biconnected) {
-						std::cout << "graph is not biconnected ";
-						if (v==1) {
-							std::cout << "v is root and" << w << " has lowpoint " << lowpoint_one[w] << std::endl;
-						} else {
-							std::cout << "edge from " << v  << " to " << w << " lowpoint_one[w] " << lowpoint_one[w] << std::endl;
-						}
-						articulation_point = node_at[v];
-					}
-                }
+
             }
         }
 
