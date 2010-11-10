@@ -127,6 +127,74 @@ auto_ptr<ugraph> test_eins(void) {
     return g;
 }
 
+auto_ptr<ugraph> test_zwei(void) {
+	const unsigned int num_nodes = 6;
+	const unsigned int max_degree = 5;
+    auto_ptr<ugraph> g(new ugraph());
+    node nodes[num_nodes];
+    for(unsigned int i=0; i<num_nodes; i++) {
+        nodes[i] = g->new_node();
+    }
+    int edges[num_nodes][max_degree] = {
+    		{1,2,3,-1,-1},
+    		{2,3,4,5,-1},
+    		{3,4,5,-1,-1},
+    		{-1,-1,-1,-1,-1},
+    		{5,-1,-1,-1,-1},
+    		{-1,-1,-1,-1,-1}
+    };
+
+    for(unsigned int i=0; i<num_nodes; i++) {
+        for(unsigned int j=0; j<max_degree; j++) {
+            if (edges[i][j]>=0) {
+                g->new_edge(nodes[i],nodes[edges[i][j]]);
+            }
+        }
+    }
+    {   edge_array<int> edges(*g);
+        edge e;
+        forall_edges(e,*g) {
+            edges[e] = target(e)->id();
+        }
+        g->bucket_sort_edges(edges);
+    }
+    return g;
+}
+
+auto_ptr<ugraph> test_drei(void) {
+	const unsigned int num_nodes = 6;
+	const unsigned int max_degree = 5;
+    auto_ptr<ugraph> g(new ugraph());
+    node nodes[num_nodes];
+    for(unsigned int i=0; i<num_nodes; i++) {
+        nodes[i] = g->new_node();
+    }
+    int edges[num_nodes][max_degree] = {
+    		{1,2,3,4,-1},
+    		{2,3,4,5,-1},
+    		{3,4,5,-1,-1},
+    		{-1,-1,-1,-1,-1},
+    		{5,-1,-1,-1,-1},
+    		{-1,-1,-1,-1,-1}
+    };
+
+    for(unsigned int i=0; i<num_nodes; i++) {
+        for(unsigned int j=0; j<max_degree; j++) {
+            if (edges[i][j]>=0) {
+                g->new_edge(nodes[i],nodes[edges[i][j]]);
+            }
+        }
+    }
+    {   edge_array<int> edges(*g);
+        edge e;
+        forall_edges(e,*g) {
+            edges[e] = target(e)->id();
+        }
+        g->bucket_sort_edges(edges);
+    }
+    return g;
+}
+
 void to_file(const ugraph& g, const char* name) {
     std::ostringstream s;
     s << "./graph" << name << ".dot";
@@ -135,11 +203,14 @@ void to_file(const ugraph& g, const char* name) {
 }
 
 int main(void) {
-    auto_ptr<ugraph> g = sample_graph();
+    auto_ptr<ugraph> g = test_zwei();
 
     to_file(*g,"test");
+    node s1,s2;
+    hopcroft_tarjan_is_triconnected(*g,s1,s2);
 
-    cout << /*naive_is_triconnected(*g) <<*/ " " << hopcroft_tarjan_is_triconnected(*g) << endl;
+//    if (!t)
+//    	cout << s1->id() << " " << s2->id() << endl;
 
 //    const unsigned int n = 20;
 //    const float max_m = n*(n-1)/2;
