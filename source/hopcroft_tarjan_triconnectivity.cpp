@@ -123,9 +123,11 @@ public:
      * separation pair. If g is not even biconnected s1==s2 is an articulation point */
     bool is_triconnected(node& s1, node& s2) {
 
+#ifdef DOTS
         std::fstream f("./triconnectivity.dot", std::ios::trunc | std::ios::out);
         to_dot(f);
         f.close();
+#endif
 
     	if (!is_biconnected) {
     		s1 = articulation_point;
@@ -250,13 +252,18 @@ private:
         dfs(the_graph.first_node(), parent, next_number,seen_edge_to_parent);
 
         delete[] seen_edge_to_parent;
+#ifdef DOTS
         std::fstream f("./dfs.dot", std::ios::trunc | std::ios::out);
         to_dot(f);
         f.close();
+#endif
         make_acceptable_adjacency();
+
+#ifdef DOTS
         f.open("./acceptable_adjacency.dot", std::ios::trunc | std::ios::out);
         to_dot(f);
         f.close();
+#endif
 
     }
 
@@ -310,10 +317,11 @@ private:
         pathfinder(the_graph.first_node(), at_start_of_path, nodes_to_be_seen);
 
         //the_graph.bucket_sort_nodes(number); //probably unnecessary
-
+#ifdef DOTS
         std::fstream f("./step_2.dot", std::ios::trunc | std::ios::out);
         to_dot(f);
         f.close();
+#endif
     }
 
 
@@ -336,7 +344,7 @@ private:
      * Further each frond is marked as a frond in is_frond[e]
      */
     unsigned int dfs(const node& node_v, const int parent, unsigned int next_number, bool* const seen_edge_to_parent) {
-		std::cout << "DFS " << node_v->id() << " " << node_v << " ";
+//		std::cout << "DFS " << node_v->id() << " " << node_v << " ";
 		assert(number[node_v]<0);
 		assert(next_number>0);
         number[node_v] = next_number++;
@@ -344,7 +352,7 @@ private:
         assert(number[node_v]>0);
         assert((unsigned int)number[node_v]<=number_of_nodes);
         const unsigned int v = number[node_v];
-        std::cout << v << std::endl;
+//        std::cout << v << std::endl;
 
         assert(parent < (int)v);
         assert(v>0);
@@ -493,7 +501,7 @@ private:
 //                if (node_w == node_v) // again this is to handle LEDA's peculiarities
 //                    continue;
 
-                std::cout << "Pathfinder " << v << " -- " << number[node_w] << " " << at_path_start << " " << vw <<  std::endl;
+//                std::cout << "Pathfinder " << v << " -- " << number[node_w] << " " << at_path_start << " " << vw <<  std::endl;
 
 				if (at_path_start) {
 					is_first_on_path[vw] = at_path_start; //if we see edges again that are true, don't set it to false
@@ -503,7 +511,7 @@ private:
                 if (!is_frond[vw] ) {
 
                 	if (v<w) { //if w >= v and the edge is not a frond, we are seeing our parent again
-                		std::cout << "\ttree edge " << std::endl;
+//                		std::cout << "\ttree edge " << std::endl;
                 		pathfinder(node_w, at_path_start, nodes_to_be_seen);
 						nodes_to_be_seen -= number_descendants[node_w];
                 	}
@@ -511,7 +519,7 @@ private:
                     /* if we encounter a frond, it is the last edge on the path, so set s to true to mark the next edge as a start of a path.
                      * we also update the highpoint. We don't need to check whether it is smaller than before because of the ordering in which we traverse the graph
                      */
-                	std::cout << "\tfrond" << std::endl;
+//                	std::cout << "\tfrond" << std::endl;
                     if (highpoint[v] == -1) {
                         highpoint[w] = v;
                     }
@@ -772,6 +780,14 @@ bool hopcroft_tarjan_is_triconnected(const ugraph& g, node& s1, node& s2) {
 bool hopcroft_tarjan_is_triconnected(const ugraph& g) {
     node s1,s2;
     return hopcroft_tarjan_is_triconnected(g,s1,s2);
+}
+
+bool hopcroft_tarjan_is_triconnected_nc(ugraph& g, node& s1, node& s2) {
+    if (!is_connected(g))
+        return false;
+
+    palm_tree p(g);
+    return p.is_triconnected(s1,s2);
 }
 
 

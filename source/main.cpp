@@ -202,40 +202,38 @@ void to_file(const ugraph& g, const char* name) {
     simple_to_dot(g, f);
 }
 
-int main(void) {
-    auto_ptr<ugraph> g = test_zwei();
-
-    to_file(*g,"test");
+void plantri_test() {
+    ugraph g;
     node s1,s2;
-    hopcroft_tarjan_is_triconnected(*g,s1,s2);
+    unsigned int graph_number = 0;
+    while(!std::cin.eof()) {
 
-//    if (!t)
-//    	cout << s1->id() << " " << s2->id() << endl;
+    	graph_number++;
+    	std::cin >> g;
+    	if (!hopcroft_tarjan_is_triconnected_nc(g,s1,s2)) {
+    		cout << "drama "<< graph_number << endl;
+			std::ostringstream s;
+			s << "./graph" << graph_number << ".dot";
+			std::fstream dot(s.str().c_str(), std::ios::out);
+			simple_to_dot(g,dot);
+			dot.close();
+    	}
+    	if (graph_number % 10000 == 0)
+    		cout << '.';
+    	if (graph_number % 100000 == 0)
+    		cout << '\n';
+    	assert(g.number_of_nodes() > 0);
+    }
 
-//    const unsigned int n = 20;
-//    const float max_m = n*(n-1)/2;
-//    random_source S(1,n/2-1);
-//    S.set_seed(42);
-//
-//    float total = used_time();
-//
-//    for(unsigned int i=0; i<20; i++) {
-//        do {
-//            const unsigned int random = S();
-//            const unsigned int m = max_m/random;
-//            cout << m << " " << random << endl;
-//            random_graph(g,n,m,false,true,false);
-//        } while (!is_connected(g));
-//        cout << "!" << endl;
-//        if (naive_is_triconnected(g) != hopcroft_tarjan_is_triconnected(g)) {
-//            std::cout << "drama " << std::endl;
-//            std::ostringstream s;
-//            s << "./wrong" << i << ".dot";
-//            std::fstream f(s.str().c_str(), std::ios::out);
-//            to_dot(g,f);
-//        }
-//    }
-//
-//    cout << "total " << used_time()-total << endl;
+    cout << graph_number << endl;
+}
+
+int main(void) {
+	auto_ptr<ugraph> one = k4();
+	{
+	auto_ptr<ugraph> two = test_zwei();
+	glue_graphs(*one,*two);
+	}
+	to_file(*one, "test");
     return 0;
 }

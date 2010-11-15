@@ -19,6 +19,7 @@ std::auto_ptr<leda::list<leda::two_tuple<leda::node,leda::node> > > naive_separa
 
 bool hopcroft_tarjan_is_triconnected(const leda::ugraph&);
 bool hopcroft_tarjan_is_triconnected(const leda::ugraph&, leda::node& s1, leda::node& s2);
+bool hopcroft_tarjan_is_triconnected_nc(leda::ugraph&, leda::node& s1, leda::node& s2);
 
 void test(leda::ugraph&);
 
