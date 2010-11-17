@@ -6,6 +6,8 @@ using namespace leda;
 using std::endl;
 using std::istream;
 
+#define DETERMINISTIC_GLUE
+
 void to_dot(const ugraph& g, std::ostream& out) {
 
     out << "digraph G {" << endl;
@@ -102,16 +104,22 @@ node merge_nodes(ugraph& g, node one, node two) {
 	return new_node;
 }
 
-/* Takes two graphs and indentifies two nodes from each to form a new graph with exactly one separation pair. The result is stored in one */
-void glue_graphs(ugraph& one, ugraph& two) {
+/* Takes two graphs and indentifies two nodes from each to form a new graph with exactly one separation pair. The result is stored in one. The separation pair is stored in the node arguments */
+void glue_graphs(ugraph& one, ugraph& two, node& merge_one, node& merge_two) {
+	const unsigned int number_one_nodes = one.number_of_nodes();
 	const unsigned int number_two_nodes = two.number_of_nodes();
 
+#ifdef DETERMINISTIC_GLUE
+	const node point_one = one.first_node();
+	node point_two = one.last_node();
+	assert(point_one != point_two);
+#else
 	const node point_one = one.choose_node();
 	node point_two;
 	do {
 		point_two = one.choose_node();
 	} while(point_one == point_two);
-
+#endif
 	node* const new_nodes = new node[number_two_nodes];
 	for(unsigned int i = 0; i< number_two_nodes; i++) {
 		new_nodes[i] = one.new_node();
@@ -125,6 +133,9 @@ void glue_graphs(ugraph& one, ugraph& two) {
 	}
 
 	random_source src_two(0,number_two_nodes-1);
+#ifdef DETERMINISTIC_GLUE
+	src_two.set_seed(42);
+#endif
 
 	unsigned int other_graph_point_one, other_graph_point_two;
 	src_two >> other_graph_point_one;
@@ -132,14 +143,16 @@ void glue_graphs(ugraph& one, ugraph& two) {
 		src_two >> other_graph_point_two;
 	} while(other_graph_point_one == other_graph_point_two);
 
-	node merge_one = merge_nodes(one,point_one, new_nodes[other_graph_point_one]);
-	node merge_two = merge_nodes(one,point_two, new_nodes[other_graph_point_two]);
+	merge_one = merge_nodes(one,point_one, new_nodes[other_graph_point_one]);
+	merge_two = merge_nodes(one,point_two, new_nodes[other_graph_point_two]);
 
 	std::cout << "Merge nodes: " << merge_one->id() << " " << merge_two->id() << " from " << std::endl;
 	std::cout << point_one->id() << " " << new_nodes[other_graph_point_one]->id() << std::endl;
 	std::cout << point_two->id() << " " << new_nodes[other_graph_point_two]->id() << std::endl;
 
 	delete[] new_nodes;
+
+	assert((unsigned int)one.number_of_nodes() == number_one_nodes + number_two_nodes - 2);
 }
 
 

@@ -26,13 +26,14 @@
 <listOptionValue builtIn="false" value="/home/adrian/LEDA/incl"/>
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/GenerateGraphs/include}&quot;"/>
 </option>
-<option id="gnu.cpp.compiler.option.optimization.level.633621890" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.optimize" valueType="enumerated"/>
+<option id="gnu.cpp.compiler.option.optimization.level.633621890" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 <option id="gnu.cpp.compiler.option.warnings.pedantic.1965342864" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.2106247478" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.443094116" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.other.other.1746411118" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c " valueType="string"/>
-<option id="gnu.cpp.compiler.option.debugging.gprof.1881566456" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="true" valueType="boolean"/>
+<option id="gnu.cpp.compiler.option.debugging.gprof.1881566456" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.level.461664337" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
+<option id="gnu.cpp.compiler.option.optimization.flags.1147388332" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-mtune=native -march=native" valueType="string"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1909800968" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool command="gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.c.compiler.base.1003590242" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
