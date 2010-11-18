@@ -14,14 +14,15 @@ using std::auto_ptr;
 
 using namespace leda;
 
-#define DOTS
+//#define DOTS
 //#define DFSCOUT
-#define PATHFINDERCOUT
+//#define PHI_COUT
+//#define PATHFINDER_COUT
 //#define PATHFINDER_PATH_COUT
-#define PATHSEARCH_COUT
-#define STACK_COUT
+//#define PATHSEARCH_COUT
+//#define STACK_COUT
 #define RECORD_NODES
-#define PATHSEARCH_COUT_SEPPAIR
+//#define PATHSEARCH_COUT_SEPPAIR
 
 /*
  * Finding separation pairs as described in "Dividing a graph into triconnected components"
@@ -97,15 +98,15 @@ public:
         number_of_nodes((assert(g.number_of_nodes()>=0), g.number_of_nodes())),
         is_biconnected(true),
         the_graph(g),
-        number(the_graph,-1),
+        number(the_graph,0),
         number_descendants(the_graph,0),
+        highpoint(the_graph,0),
 
         is_frond(the_graph,false),
         is_first_on_path(the_graph,false),
         lowpoint_one(new unsigned int[number_of_nodes+1]),
         lowpoint_two(new unsigned int[number_of_nodes+1]),
         father(new unsigned int[number_of_nodes+1]),
-        highpoint(new int[number_of_nodes+1]),
         node_at(new node[number_of_nodes+1]),
         current_t_stack(new t_stack_type())
 
@@ -115,14 +116,13 @@ public:
 #endif
         step_one();
         step_two();
-        step_one();
 #ifdef DOTS
         std::cout << "Dot output" << std::endl;
 #endif
 #ifdef DFSCOUT
         std::cout << "Output during DFS" << std::endl;
 #endif
-#ifdef PATHFINDERCOUT
+#ifdef PATHFINDER_COUT
         std::cout << "Output during Pathfinder" << std::endl;
 #endif
 #ifdef STACK_COUT
@@ -141,7 +141,6 @@ public:
         delete[] lowpoint_one;
         delete[] lowpoint_two;
         delete[] father;
-        delete[] highpoint;
         delete[] node_at;
         delete current_t_stack;
         while(!t_stacks.empty()) {
@@ -193,7 +192,7 @@ public:
                 out << "Father: " << father[num];
                 out << " | {" << lowpoint_one[num];
                 out << " | " << lowpoint_two[num];
-                out << " | " << highpoint[num];
+                out << " | " << highpoint[n];
                 out << " | " << number_descendants[n];
                 out << " } |Node " << num << ", ID " << id << ", Addr " << n << "}\"]" << std::endl;
 #else
@@ -227,7 +226,7 @@ public:
                 	paths++;
                 }
                 out << "\tnode" << n->id() << " -> " << "node" << u->id();
-                out << " [ " << (is_frond[e] ? "constraint = false, color = \"red\", ":"") << "label=\"" << is_first_on_path[e] << "\"]";
+                out << " [ " << (is_frond[e] ? "constraint = false, color = \"red\", ":"") << "label=\"" << is_first_on_path[e] << " " << phi(e) <<  "\"]";
                 out << std::endl;
             }
 
@@ -245,17 +244,18 @@ private:
     node articulation_point;
     ugraph& the_graph;
 
-    node_array<int> number; //stores the step in which a node is reached during DFS
+    node_array<unsigned int> number; //stores the step in which a node is reached during DFS
     node_array<unsigned int> number_descendants;
+    node_array<unsigned int> highpoint;
+
 
 
     edge_array<bool> is_frond; //true if edge is a frond.
     edge_array<bool> is_first_on_path;
 
-    unsigned int* const lowpoint_one; //stores for each node the first lowpoint
-    unsigned int* const lowpoint_two;
-    unsigned int* const father;
-    int* const highpoint;
+    unsigned int* lowpoint_one; //stores for each node the first lowpoint
+    unsigned int* lowpoint_two;
+    unsigned int* father;
     node* const node_at;
 
     typedef stack<three_tuple<unsigned int, unsigned int, unsigned int> > t_stack_type;
@@ -277,8 +277,8 @@ private:
 
         {   node n;
             forall_nodes(n,the_graph) {
-                number[n] = -1;
-                number_descendants[n] = -1;
+                number[n] = 0;
+                number_descendants[n] = 0;
             }
         }
         {   edge e;
@@ -290,14 +290,14 @@ private:
         bool* seen_edge_to_parent =new bool[number_of_nodes+1];
         for(unsigned int i=0; i<number_of_nodes+1; i++) {
             seen_edge_to_parent[i] = false;
-            father[i] = 0xFADDA; // this constant isn't used anywhere.
-            lowpoint_one[i] = -1; // but it is used that this is <0
-            lowpoint_two[i] = -1;
+            father[i] = 0;
+            lowpoint_one[i] = 0; // but it is used that this is <0
+            lowpoint_two[i] = 0;
         }
 
-        const int parent = -1;
-        const int next_number = 1;
-        dfs(the_graph.first_node(), parent, next_number,seen_edge_to_parent);
+        const unsigned int parent = 0;
+        const unsigned int next_number = 1;
+        dfs_one(the_graph.first_node(), parent, next_number,seen_edge_to_parent);
 
         delete[] seen_edge_to_parent;
 #ifdef DOTS
@@ -310,6 +310,7 @@ private:
         f.close();
         }
 #endif
+
         make_acceptable_adjacency();
 
 #ifdef DOTS
@@ -334,11 +335,29 @@ private:
     unsigned int phi(const edge& e) const {
         assert(number[source(e)] > 0);
         assert(number[target(e)] > 0);
-        const unsigned int v = number[source(e)];
-        const unsigned int w = number[target(e)];
+        unsigned int v = number[source(e)];
+        unsigned int w = number[target(e)];
+
+        if (is_frond[e]) { //fronds go from big to small, other nodes from small to big.
+        	if (v<w) swap(v,w);
+        } else {
+        	if (v>w) swap(v,w);
+        }
+
+
         assert(w<=number_of_nodes);
         assert(v<=number_of_nodes);
 
+#ifdef PHI_COUT
+        unsigned int phi = -1;
+        unsigned int type = -1;
+
+        if (is_frond[e]) {phi = 3*w+1; type = 1;}
+        else if (lowpoint_two[w] < v) {phi = 3*lowpoint_one[w]; type = 2;}//lowpoint_one[w] < w in biconnected graphs, so this is smaller than the first number
+        else {phi = 3*lowpoint_one[w]+2; type=3;}
+
+        std::cout << "Edge-phi " << v << " " << w << " " << phi << " " << type << std::endl;
+#endif
 
         if (is_frond[e]) return 3*w+1; // this goes in the middle. Remark: If the graph is biconnected, I don't think we need the +1 -- as lowpoint_one[w] < w --, but it doesn't hurt either.
 
@@ -363,22 +382,70 @@ private:
     }
 
     void step_two(void) {
+    	unsigned int* old_new_map;
+    	{	node_array<unsigned int> new_number(the_graph,0);
 
+			{ node n; //BUGFIX for LEDA
+				forall_nodes(n,the_graph) {
+					highpoint[n] = 0;
+					new_number[n] = 0;
+				}
+			}
+	//        for(unsigned int i = 0; i<number_of_nodes+1; i++) {
+	//            highpoint[i] = 0; //this is used
+	//        }
+			{	edge e; //BUGFIX for LEDA
+				forall_edges(e,the_graph) {
+					is_first_on_path[e] = false;
+				}
+			}
 
-        for(unsigned int i = 0; i<number_of_nodes+1; i++) {
-            highpoint[i] = -1; //this is used
-        }
-        {	edge e;
-			forall_edges(e,the_graph) {
-				is_first_on_path[e] = false;
+			bool at_start_of_path=true;
+			const unsigned int nodes_to_be_seen = number_of_nodes;
+
+			pathfinder(the_graph.first_node(), at_start_of_path, nodes_to_be_seen,new_number);
+
+			old_new_map = new unsigned int[number_of_nodes+1];
+			old_new_map[0] = 0;
+
+			{ node n;
+				forall_nodes(n,the_graph) {
+					old_new_map[number[n]] = new_number[n];
+//					std::cout << "old2new " << number[n] << " " << new_number[n] << std::endl;
+				}
+			}
+    	}
+
+        unsigned int* new_lp1 = new unsigned int[number_of_nodes+1];
+        unsigned int* new_lp2 = new unsigned int[number_of_nodes+1];
+        unsigned int* new_father = new unsigned int[number_of_nodes+1];
+
+        { node n;
+			forall_nodes(n,the_graph) {
+				const unsigned int v = number[n];
+				const unsigned int new_v = old_new_map[v];
+				new_lp1[new_v] = old_new_map[lowpoint_one[v]];
+				new_lp2[new_v] = old_new_map[lowpoint_two[v]];
+				new_father[new_v] = old_new_map[father[v]];
 			}
         }
 
-        bool at_start_of_path=true;
-        const unsigned int nodes_to_be_seen = number_of_nodes;
-        pathfinder(the_graph.first_node(), at_start_of_path, nodes_to_be_seen);
+        delete[] lowpoint_one;
+        delete[] lowpoint_two;
+        delete[] father;
+        lowpoint_one = new_lp1;
+        lowpoint_two = new_lp2;
+        father = new_father;
 
-        //the_graph.bucket_sort_nodes(number); //probably unnecessary
+        { node n;
+			forall_nodes(n,the_graph) {
+				number[n] = old_new_map[number[n]];
+			}
+        }
+
+        delete[] old_new_map;
+
+
 #ifdef DOTS
         std::fstream f("./step_2.dot", std::ios::trunc | std::ios::out);
         to_dot(f);
@@ -388,12 +455,13 @@ private:
 
 
 
+
+
     /* Step 1 in Hopcroft Tarjan algorithm. Compute the graph information.
      * Things changed:
      * - flag switched
      * - instead of looking at adjacent nodes I traverse adjacent edges, to be able to mark edges as fronds
      *
-     * The second argument is an int because parents already have a number.
      */
 
     /* This function performs a DFS on the graph and calculates a palm tree. It also calculates the following values
@@ -405,20 +473,19 @@ private:
      *
      * Further each frond is marked as a frond in is_frond[e]
      */
-    unsigned int dfs(const node& node_v, const int parent, unsigned int next_number, bool* const seen_edge_to_parent) {
+    unsigned int dfs_one(const node& node_v, const unsigned int parent, unsigned int next_number, bool* const seen_edge_to_parent) {
 #ifdef DFSCOUT
 		std::cout << "DFS " << node_v->id() << " " << node_v << " ";
 #endif
-		assert(number[node_v]<0);
 		assert(next_number>0);
         number[node_v] = next_number++;
 
         assert(number[node_v]>0);
-        assert((unsigned int)number[node_v]<=number_of_nodes);
+        assert(number[node_v]<=number_of_nodes);
         const unsigned int v = number[node_v];
         node_at[v] = node_v;
 
-        assert(parent < (int)v);
+        assert(parent < v);
         assert(v>0);
 
         // We initialize lowpoint one and two with v, in case no lower node can be reached
@@ -437,11 +504,11 @@ private:
 #endif
 
 
-                int w = number[node_w];
+                unsigned int w = number[node_w];
 
-                if (w < 0 || (w==0 && node_w!=the_graph.first_node())) { //latter part is fix for bug in LEDA
-                    //if w<0 we haven't seen w before, so we do a dfs on w
-                    next_number = dfs(node_w, v,next_number,seen_edge_to_parent);
+                if (w==0) {
+                    //if w==0 we haven't seen w before, so we do a dfs on w
+                    next_number = dfs_one(node_w, v,next_number,seen_edge_to_parent);
 
                     //during the dfs w gets assigned a number
                     w = number[node_w];
@@ -490,7 +557,7 @@ private:
     					}
                     }
 
-                } else if ((unsigned int)w < v && ((w!=parent) || seen_edge_to_parent[v]) ) {
+                } else if (w < v && ((w!=parent) || seen_edge_to_parent[v]) ) {
                     /* In this case we have already seen w. We need to check whether the back-edge qualifies as a frond.
                      * An edge v --> w is a frond if w -*> v is a path in the tree (and v -- w -* v is a circle in the graph).
                      * So edges back to the father node u are not fronds, unless there are more edges u--v
@@ -505,17 +572,17 @@ private:
 
                     is_frond[vw] = true;
 #ifdef DFSCOUT
-                    std :: cout << "\t frond! " << ((unsigned int)w<v) << " " << (w!=parent) << " " << seen_edge_to_parent[v] << std::endl;
+                    std :: cout << "\t frond! " << (w<v) << " " << (w!=parent) << " " << seen_edge_to_parent[v] << std::endl;
 #endif
 
                     /*
                      * A frond allows us to go back up in the graph, so we need to update the lowpoints
                      */
-                    if ((unsigned int)w<lowpoint_one[v]) {
+                    if (w<lowpoint_one[v]) {
                         lowpoint_two[v] = lowpoint_one[v];
                         lowpoint_one[v] = w;
-                    } else if ((unsigned int)w>lowpoint_one[v]) {
-                        lowpoint_two[v] = min(lowpoint_two[v],(unsigned int)w);
+                    } else if (w>lowpoint_one[v]) {
+                        lowpoint_two[v] = min(lowpoint_two[v],w);
                     }
 
                 } else {
@@ -549,8 +616,7 @@ private:
      * - node_at[v], a reverse map from node numbers to LEDA nodes
      * - highpoint[v], for nodes at which fronds end, the node with the lowest (according to the new numbering) number at the source of a frond.
      */
-    void pathfinder(node node_v, bool& at_path_start, unsigned int nodes_to_be_seen) {
-    	assert(nodes_to_be_seen >= 0);
+    void pathfinder(node node_v, bool& at_path_start, unsigned int nodes_to_be_seen, node_array<unsigned int>& new_number) {
         assert(nodes_to_be_seen <=number_of_nodes);
 
         /* because we want the numbers in reverse, but need them before we come back (for the highpoints) we count downwards.
@@ -560,10 +626,11 @@ private:
         assert(nodes_to_be_seen>=(number_descendants[node_v]-1));
         const unsigned int v = nodes_to_be_seen - (number_descendants[node_v] - 1);
         assert(v<=number_of_nodes);
-        number[node_v] = v;
+        new_number[node_v] = v;
+        assert(new_number[node_v]>0);
 
         node_at[v] = node_v;
-#ifdef PATHFINDERCOUT
+#ifdef PATHFINDER_COUT
         std::cout << "Pathfinder " << node_v->id() << std::endl;
 #endif
 
@@ -573,20 +640,20 @@ private:
                 /* In this loop we check whether the edge vw is the first on one of the paths */
 
                 const node node_w = opposite(vw,node_v);
-                const unsigned int w = number[node_w];
+                const unsigned int w = new_number[node_w];
 
-                if (number[node_w] < number[node_v] && !is_frond[vw]) {
-#ifdef PATHFINDERCOUT
-                	std::cout << "Skip backedge to parent " << node_v->id() << " " << node_w->id() << std::endl;
+                if (w==0 && is_frond[vw]) {
+#ifdef PATHFINDER_COUT
+                	std::cout << "Skip frond in wrong direction " << std::endl;
 #endif
                 	continue;
                 }
 
-                if (is_frond[vw] && number[node_v] < number[node_w]) {
-#ifdef PATHFINDERCOUT
-                	std::cout << "Skip frond in the wrong direction " << node_v->id() << " " << node_w->id() << std::endl;
+                if (w>0 && w<v && !is_frond[vw]) {
+#ifdef PATHFINDER_COUT
+                	std::cout << "Skip edge to parent " << std::endl;
 #endif
-					continue;
+                	continue;
                 }
 
 				if (at_path_start) {
@@ -601,29 +668,31 @@ private:
 #endif
 
                 if (!is_frond[vw] ) {
-
-                	if (v<w) { //if w >= v and the edge is not a frond, we are seeing our parent again
-#ifdef PATHFINDERCOUT
+#ifdef PATHFINDER_COUT
                 		std::cout << "\ttree edge " << std::endl;
 #endif
-                		pathfinder(node_w, at_path_start, nodes_to_be_seen);
+                		pathfinder(node_w, at_path_start, nodes_to_be_seen, new_number);
+                		assert(new_number[node_w]>0);
 						nodes_to_be_seen -= number_descendants[node_w];
-                	}
                 } else {
                     /* if we encounter a frond, it is the last edge on the path, so set s to true to mark the next edge as a start of a path.
                      * we also update the highpoint. We don't need to check whether it is smaller than before because of the ordering in which we traverse the graph
                      */
 
-#ifdef PATHFINDERCOUT
+#ifdef PATHFINDER_COUT
                 	std::cout << "\tfrond " << node_v->id() << " " << node_w->id() <<  std::endl;
 #endif
-                    if (highpoint[w] == -1) {
-                    	//assert(highpoint[w]<0 || (unsigned int)highpoint[w] <= v);
-#ifdef PATHFINDERCOUT
-                    	std::cout << "Frond from " << node_v->id() << " to " << node_w->id() << ": update highpoint" << w << " to " << v << std::endl;
+                    if (highpoint[node_w] == 0) {
+#ifdef PATHFINDER_COUT
+                    	std::cout << "Frond from " << node_v->id() << " (" << v << ")" << " to " << node_w->id() << " (" << w << "): update highpoint " << w << " to " << v << std::endl;
 #endif
-                        highpoint[w] = v;
+                        highpoint[node_w] = v;
                     }
+#ifdef PATHFINDER_COUT
+                    else {
+                    	std::cout << "Frond from " <<  node_v->id() << " to " << node_w->id() << ": highpoint stays at " << highpoint[node_w] <<  std::endl;
+                    }
+#endif
 
                     at_path_start = true;
                 }
@@ -684,25 +753,25 @@ private:
             //num_unexplored_adj_edges--;
             const node node_w = opposite(vw,node_v);
             const bool frond = is_frond[vw];
+            const unsigned int w = number[node_w];
 #ifdef PATHSEARCH_COUT
             std::cout << "\tEdge " << source(vw)->id() << " " << target(vw)->id() << std::endl;
 #endif
 
-            if (number[node_w] < number[node_v] && !frond) {
+            if (w < v && !frond) {
 #ifdef PATHSEARCH_COUT
 				std::cout << "Skip backedge to parent " << source(vw)->id() << " " << target(vw) -> id() << " from " << node_v->id() << std::endl;
 #endif
 				continue;
             }
 
-            if (is_frond[vw] && number[node_v] < number[node_w]) {
+            if (is_frond[vw] && v < w) {
 #ifdef PATHSEARCH_COUT
             	std::cout << "Skip frond in the wrong direction " << node_v->id() << " " << node_w->id() << std::endl;
 #endif
 				continue;
             }
 
-            const unsigned int w = number[node_w];
 
             if (is_first_on_path[vw])
                 update_stack(vw,node_w, w, v,current_t_stack);
@@ -733,11 +802,11 @@ private:
                 {   const node node_child_w = the_graph.adj_nodes(node_w).contents(the_graph.adj_nodes(node_w).first());
                     // it should also be ok to check whether the first out-edge of w is a frond.
                     // I don't know why we need to check number[node_child_w] > w. TODO
-                    const bool deg_two_case =  (the_graph.degree(node_w) == 2 && (unsigned int)number[node_child_w] > w);
+                    const bool deg_two_case =  (the_graph.degree(node_w) == 2 && number[node_child_w] > w);
 
                     if (deg_two_case) {
 #ifdef PATHSEARCH_COUT_SEPPAIR
-                    	std::cout << number[node_v] << " and " << number[node_child_w] << " are a type-2 pair, " << w << " has degree 2" <<std::endl;
+                    	std::cout << v << " and " << number[node_child_w] << " are a type-2 pair, " << w << " has degree 2" <<std::endl;
 #endif
                         //separate node with degree two by its neighbours
                         // v -- w -- child(w)
@@ -824,16 +893,18 @@ private:
              * So if highpoint[v] > h for a potential sep. pair (h,a,b), a<v<b, that means that in the corresponding split
              * component there is a frond back into the part between a and b and hence it can't be a valid separation pair.
              */
+#ifdef PATHSEARCH_COUT
+            std::cout << "Deleting things from stack with h < highpoint["<< v << "] = " << highpoint[node_v] << std::endl;
+#endif
             while (!current_t_stack->empty()
                     && current_t_stack->top().second() != v
                     && current_t_stack->top().third() != v
-                    && highpoint[v] >= 0
-                    && (unsigned int)highpoint[v] > current_t_stack->top().first()) {
+                    && highpoint[node_v] > current_t_stack->top().first()) {
 #ifdef PATHSEARCH_COUT
 				std::cout << "Not a type 2 pair (hp) (" <<  current_t_stack->top().first() << ", " << current_t_stack->top().second() << ", " << current_t_stack->top().third() << ")" << std::endl;
 #endif
-//                assert(current_t_stack->top().second() < v);
-              //  assert(current_t_stack->top().third() > v);
+                assert(current_t_stack->top().second() < v);
+                assert(current_t_stack->top().third() > v);
                 current_t_stack->pop();
             }
 
@@ -867,6 +938,8 @@ private:
     void update_stack(const edge e, const node node_w, const unsigned int w, const unsigned int v, t_stack_type*& current_t_stack) {
 #ifdef STACK_COUT
     	std::cout << "Stackupdate " << current_t_stack->size() << " " << t_stacks.size() << std::endl;
+    	std::cout << "Stack ";
+    	print_stack(*current_t_stack);
 #endif
         if (!is_frond[e]) {
 
@@ -893,7 +966,7 @@ private:
             hab.third() = last_popped.third();
 
 #ifdef STACK_COUT
-            std::cout << "Possible type 2 pair: " << hab.second() << " " << hab.third() << std::endl;
+            std::cout << "Possible type 2 pair: " << hab.first() << " " << hab.second() << " " << hab.third() << std::endl;
 #endif
             current_t_stack->push(hab);
 
@@ -921,7 +994,7 @@ private:
             hab.first() = highest_vertex_number;
             hab.third() = last_popped.third();
 #ifdef STACK_COUT
-            std::cout << "Possible type 2 pair: " << hab.second() << " " << hab.third() << std::endl;
+            std::cout << "Possible type 2 pair: " << hab.first() << " " << hab.second() << " " << hab.third() << std::endl;
 #endif
             current_t_stack->push(hab);
 
