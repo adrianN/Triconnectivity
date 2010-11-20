@@ -202,21 +202,29 @@ void to_file(const ugraph& g, const char* name) {
     simple_to_dot(g, f);
 }
 
-void plantri_test() {
+void plantri_test(std::istream& cin) {
     ugraph g;
     node s1,s2;
     unsigned int graph_number = 0;
-    while(!std::cin.eof()) {
+    while(!cin.eof()) {
 
     	graph_number++;
-    	std::cin >> g;
+    	cin >> g;
     	if (!hopcroft_tarjan_is_triconnected_nc(g,s1,s2)) {
     		cout << "drama "<< graph_number << endl;
 			std::ostringstream s;
-			s << "./graph" << graph_number << ".dot";
-			std::fstream dot(s.str().c_str(), std::ios::out);
-			simple_to_dot(g,dot);
-			dot.close();
+			s << "./sep_pair_graph" << graph_number << ".dot";
+			{	std::fstream dot(s.str().c_str(), std::ios::out);
+				simple_to_dot(g,dot);
+				dot.close();
+			}
+			s.seekp((long)s.tellp()-4);
+			s << ".tri";
+			{	std::fstream tri(s.str().c_str(),std::ios::out);
+				write_planar_code(g,tri);
+				tri.close();
+			}
+			//exit(-1);
     	}
     	if (graph_number % 10000 == 0)
     		cout << '.';
@@ -244,7 +252,6 @@ void test_separation_pairs(std::istream& cin) {
     	cin >> one;
     	if (cin.eof()) return;
     	cin >> two;
-    	cout << "-------" << endl;
     	glue_graphs(one,two,s1,s2);
 
 
@@ -260,13 +267,21 @@ void test_separation_pairs(std::istream& cin) {
     		if (found1!=NULL && found2!=NULL)
 				cout << " found " << found1->id() << " " << found2->id()  << endl;
     		else
-    			cout << " no pair found" << endl;
+    			cout << "\tno pair found" << endl;
+    		cout << "\tCorrect pair " << s1->id() << " " << s2->id() << endl;
 			std::ostringstream s;
 			s << "./graph" << graph_number << ".dot";
-			std::fstream dot(s.str().c_str(), std::ios::out);
-			simple_to_dot(one,dot);
-			dot.close();
-			break;
+			{	std::fstream dot(s.str().c_str(), std::ios::out);
+				simple_to_dot(one,dot);
+				dot.close();
+			}
+			s.seekp((long)s.tellp()-4);
+			s << ".tri";
+			{	std::fstream tri(s.str().c_str(),std::ios::out);
+				write_planar_code(one,tri);
+				tri.close();
+			}
+			//exit(-1);
     	}
 
     	if (graph_number % 10000 == 0)
@@ -348,63 +363,115 @@ auto_ptr<ugraph> test_five(void) {
     return g;
 }
 
-auto_ptr<ugraph> test_six(void) {
-	const unsigned int num_nodes = 14;
-	const unsigned int max_degree = 2;
-    auto_ptr<ugraph> g(new ugraph());
-    node nodes[num_nodes];
-    for(unsigned int i=0; i<num_nodes; i++) {
-        nodes[i] = g->new_node();
-    }
-    int edges[num_nodes][max_degree] = {
-    		{1}, //0
-    		{2}, //1
-    		{3}, //2
-    		{4}, //3
-    		{5}, //4
-    		{6}, //5
-    		{7}, //6
-    		{8}, //7
-    		{9}, //8
-    		{10}, //9
-    		{11}, //10
-    		{12,13}, //11
-    		{}, //12
-    		{}, //13
+void reduce(ugraph& g) {
+	char c=0;
+	ugraph h(g);
+	char i='a';
+	while (c!='x') {
+		node s1=NULL,s2=NULL;
+		bool tc = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
+		cout << "tc " << tc << endl;
+		if (!tc) {
+			cout << s1->id() << endl;
+			cout << s2->id() << endl;
+		}
 
+		i++;
+		{
+			std::string s = "reduced";
+			s+=i;
+			s+=".tri";
+			std::fstream reduced(s.c_str(),std::ios::out);
+			write_planar_code(g,reduced);
+			reduced.close();
+		}
+		std::cin >> c;
+		switch(c) {
+		case 'd': {
+			int n;
+			std::cin >> n;
+			node no;
+			CopyGraph(h,g);
+			forall_nodes(no,g) {
+				if (no->id() == n) {
+					g.del_node(no);
+					break;
+				}
+			}
+			break;
+		}
+		case 'm': {
+			int n,m;
+			std::cin >> n;
+			std::cin >> m;
+			node non=0,nom=0;
+			node no;
+			forall_nodes(no,g) {
+				if (no->id() == n)
+					non = no;
+				if (no->id() == m)
+					nom = no;
+			}
+			CopyGraph(h,g);
 
-    };
+			merge_nodes(g,non,nom);
+			break;
+		}
+		case 'e': {
+			int n,m;
+			std::cin >> n;
+			std::cin >> m;
+			edge e;
+			edge f=0;
+			forall_edges(e,g) {
+				if ((source(e)->id() == n && target(e)->id() == m) || (source(e)->id() == m && target(e)->id() == n)) {
+					f = e;
+					break;
+				}
+			}
+			CopyGraph(h,g);
 
-    for(unsigned int i=0; i<num_nodes; i++) {
-        for(unsigned int j=0; j<max_degree; j++) {
-            if (edges[i][j]>=0) {
-                g->new_edge(nodes[i],nodes[edges[i][j]]);
-            }
-        }
-    }
-    {   edge_array<int> edges(*g);
-        edge e;
-        forall_edges(e,*g) {
-            edges[e] = target(e)->id();
-        }
-        g->bucket_sort_edges(edges);
-    }
-    return g;
+			g.del_edge(f);
+			break;
+		}
+		case 'u': {
+			CopyGraph(g,h);
+			break;
+		}
+		}
+
+	}
+
 }
 
-int main(void) {
-	std::fstream f("./out.txt", std::ios::in);
-	test_separation_pairs(f);
-
-
-//	auto_ptr<ugraph> test = test_four();
-//	node s1=NULL,s2=NULL;
-//	bool tc = hopcroft_tarjan_is_triconnected_nc(*test,s1,s2);
-//	cout << "tc " << tc << endl;
-//	if (!tc) {
-//		cout << s1->id() << endl;
-//		cout << s2->id() << endl;
+int main(int argc, char* argv[]) {
+//	{	std::fstream f("./out.txt", std::ios::in);
+//		cout << "Testing separation pairs " << std::endl;
+//		test_separation_pairs(f);
+//		f.close();
 //	}
+//	{	std::fstream f("./out.txt", std::ios::in);
+//
+//		cout << "Testing plantri" << std::endl;
+//		plantri_test(f);
+//	}
+
+
+	ugraph test;
+	std::fstream testcase(argv[1], std::ios::in);
+	assert(testcase.good());
+	testcase >> test;
+	cout << test.number_of_nodes() << endl;
+
+//	reduce(test);
+
+	node s1=NULL,s2=NULL;
+	bool tc = hopcroft_tarjan_is_triconnected_nc(test,s1,s2);
+	cout << "tc " << tc << endl;
+	if (!tc) {
+		cout << s1->id() << endl;
+		cout << s2->id() << endl;
+	}
 
     return 0;
 }

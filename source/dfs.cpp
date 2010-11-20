@@ -5,12 +5,22 @@ using namespace leda;
 
 /* Does a DFS to determine whether the graph is connected or not */
 bool is_connected(const ugraph& g) {
-    assert(g.number_of_nodes()>=0);
-    const unsigned int number_of_nodes = g.number_of_nodes();
+
+
+    unsigned int number_of_nodes = g.number_of_nodes();
+
+    if (number_of_nodes==0) {
+    	node n;
+    	forall_nodes(n,g) {
+    		number_of_nodes++;
+    	}
+    }
+
+    assert(number_of_nodes>0);
+
     node* stack = new node[number_of_nodes];
     const node* base = stack;
     *stack = g.first_node();
-    assert(!g.is_hidden(*stack));
 
     node_array<bool> visited(g,false);
     assert(visited[*stack]==false); //Leda seems buggy around here

@@ -26,7 +26,7 @@
 <listOptionValue builtIn="false" value="/home/adrian/LEDA/incl"/>
 <listOptionValue builtIn="false" value="&quot;${workspace_loc:/GenerateGraphs/include}&quot;"/>
 </option>
-<option id="gnu.cpp.compiler.option.optimization.level.633621890" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.optimize" valueType="enumerated"/>
+<option id="gnu.cpp.compiler.option.optimization.level.633621890" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
 <option id="gnu.cpp.compiler.option.warnings.pedantic.1965342864" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.2106247478" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.443094116" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>

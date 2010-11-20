@@ -1,5 +1,6 @@
 #include "triconnectivity.hpp"
 #include "dfs.hpp"
+#include "utilities.hpp"
 
 #include "LEDA/graph/node_array.h"
 #include "LEDA/graph/edge_array.h"
@@ -14,15 +15,15 @@ using std::auto_ptr;
 
 using namespace leda;
 
-//#define DOTS
+#define DOTS
 //#define DFSCOUT
 //#define PHI_COUT
 //#define PATHFINDER_COUT
-//#define PATHFINDER_PATH_COUT
-//#define PATHSEARCH_COUT
-//#define STACK_COUT
+#define PATHFINDER_PATH_COUT
+#define PATHSEARCH_COUT
+#define STACK_COUT
+#define PATHSEARCH_COUT_SEPPAIR
 #define RECORD_NODES
-//#define PATHSEARCH_COUT_SEPPAIR
 
 /*
  * Finding separation pairs as described in "Dividing a graph into triconnected components"
@@ -113,11 +114,11 @@ public:
     {
 #ifdef DOTS
     	num_call=0;
-#endif
-        step_one();
-        step_two();
-#ifdef DOTS
         std::cout << "Dot output" << std::endl;
+        {	std::fstream initial("./graph_initial.dot",std::ios::out);
+			simple_to_dot(the_graph,initial);
+			initial.close();
+        }
 #endif
 #ifdef DFSCOUT
         std::cout << "Output during DFS" << std::endl;
@@ -134,6 +135,11 @@ public:
 #ifdef PATHSEARCH_COUT_SEPPAIR
         std::cout << "Output during Pathsearch" << std::endl;
 #endif
+
+
+        step_one();
+        step_two();
+
 
     };
 
@@ -194,7 +200,7 @@ public:
                 out << " | " << lowpoint_two[num];
                 out << " | " << highpoint[n];
                 out << " | " << number_descendants[n];
-                out << " } |Node " << num << ", ID " << id << ", Addr " << n << "}\"]" << std::endl;
+                out << " } |Node " << num << ", ID " << id << "}\"]" << std::endl;
 #else
                 out << "\tnode";
                 out << id;
@@ -631,7 +637,7 @@ private:
 
         node_at[v] = node_v;
 #ifdef PATHFINDER_COUT
-        std::cout << "Pathfinder " << node_v->id() << std::endl;
+        std::cout << "Pathfinder " << node_v->id() << " Newnum " << v << " to be seen " << nodes_to_be_seen << " nd " << number_descendants[node_v] << std::endl;
 #endif
 
 
@@ -642,7 +648,7 @@ private:
                 const node node_w = opposite(vw,node_v);
                 const unsigned int w = new_number[node_w];
 
-                if (w==0 && is_frond[vw]) {
+                if ((w==0 || w>v)&& is_frond[vw]) {
 #ifdef PATHFINDER_COUT
                 	std::cout << "Skip frond in wrong direction " << std::endl;
 #endif
@@ -785,6 +791,9 @@ private:
 
             if (!pathsearch(node_w,s1,s2))
                 return false;
+#ifdef PATHSEARCH_COUT
+            std::cout << "Continuing with edge " << source(vw)->id() << " " << target(vw)->id() << std::endl;
+#endif
 
             /* Check for type 2 pairs
              * 2. There is a vertex r!=b such that
@@ -937,11 +946,12 @@ private:
      */
     void update_stack(const edge e, const node node_w, const unsigned int w, const unsigned int v, t_stack_type*& current_t_stack) {
 #ifdef STACK_COUT
-    	std::cout << "Stackupdate " << current_t_stack->size() << " " << t_stacks.size() << std::endl;
+    	std::cout << "Stackupdate " << current_t_stack->size() << " " << t_stacks.size() << " edge " << v << " " << w << std::endl;
     	std::cout << "Stack ";
     	print_stack(*current_t_stack);
 #endif
         if (!is_frond[e]) {
+        	assert(v<w);
 
             /* When we start a new path with the tree edge v -> w it's possible to violate (iv) for possible pairs (a,b) on the stack. So we check that lowpoint_one[w] <= a and pop,
              * if necessary.
@@ -952,13 +962,17 @@ private:
 
             // in case nothing gets deleted, we want to push these values:
 
-            const unsigned int highest_vertex_number = w + number_descendants[node_w] -1;
+            unsigned int highest_vertex_number = w + number_descendants[node_w] -1;
             three_tuple<unsigned int, unsigned int, unsigned int> hab(highest_vertex_number, lowpoint_one[w], v);
 
             // remove all tuples from the stack that violate (iv), remember the last one
             three_tuple<unsigned int, unsigned int, unsigned int> last_popped = hab;
             while(!current_t_stack->empty() && current_t_stack->top().second() > lowpoint_one[w]) {
                 last_popped = current_t_stack->pop();
+                highest_vertex_number = max(highest_vertex_number, last_popped.first());
+#ifdef STACK_COUT
+                std::cout << "\tPop " << last_popped.first() << " " << last_popped.second() << " " << last_popped.third() << std::endl;
+#endif
             }
 
             // (lowpoint_one[w],b) is a possible sep. pair
@@ -968,6 +982,10 @@ private:
 #ifdef STACK_COUT
             std::cout << "Possible type 2 pair: " << hab.first() << " " << hab.second() << " " << hab.third() << std::endl;
 #endif
+            assert(current_t_stack->empty() || (current_t_stack->top().second() <= hab.second() && current_t_stack->top().third() >= hab.third()));
+            assert(hab.second() <= v);
+            assert(hab.third() >= v);
+            assert(hab.second()<=hab.third());
             current_t_stack->push(hab);
 
             // Since we will continue with examining things on the new cycle, we save this t_stack for later, when we return.
@@ -976,6 +994,7 @@ private:
             current_t_stack = new t_stack_type();
 
         } else {
+        	assert(v>w);
             /* In the case of a frond, the new path consists of just one edge, so the top pair of the stack is ok, if w >= a (v). So we pop all triples with w<a.
              *
              * If nothing was deleted (w,v) is a possible type-2 pair. Since v is processed last in this split component it has the highest number and we push (v,w,v)
@@ -986,9 +1005,13 @@ private:
             three_tuple<unsigned int, unsigned int, unsigned int> hab(v,w,v);
 
             three_tuple<unsigned int, unsigned int, unsigned int> last_popped = hab;
+            //pop all triples (h,a,b) with a>w, remember the last one
             while(!current_t_stack->empty() && w < current_t_stack->top().second()) {
                 last_popped = current_t_stack->pop();
                 highest_vertex_number = max(highest_vertex_number, last_popped.first());
+#ifdef STACK_COUT
+                std::cout << "\tPop " << last_popped.first() << " " << last_popped.second() << " " << last_popped.third() << std::endl;
+#endif
             }
 
             hab.first() = highest_vertex_number;
@@ -996,7 +1019,12 @@ private:
 #ifdef STACK_COUT
             std::cout << "Possible type 2 pair: " << hab.first() << " " << hab.second() << " " << hab.third() << std::endl;
 #endif
+            assert(current_t_stack->empty() || (current_t_stack->top().second() <= hab.second() && current_t_stack->top().third() >= hab.third()));
+            assert(hab.second() <= v);
+            assert(hab.third() >= v);
+            assert(hab.second()<=hab.third());
             current_t_stack->push(hab);
+            assert(hab.first()>=v);
 
             // Since this segment is done processing after this edge, we don't have to start a new t_stack
 

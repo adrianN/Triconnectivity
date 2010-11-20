@@ -5,8 +5,9 @@
 using namespace leda;
 using std::endl;
 using std::istream;
+using std::ostream;
 
-#define DETERMINISTIC_GLUE
+//#define DETERMINISTIC_GLUE
 
 void to_dot(const ugraph& g, std::ostream& out) {
 
@@ -43,21 +44,21 @@ void simple_to_dot(const ugraph& g, std::ostream& out) {
 
 istream& operator>>(istream& input, ugraph& graph) {
 //	std::cout << "Graph input " << input.tellg() << std::endl;
-	if (input.tellg() == std::ios::beg) {
-		input.ignore(15); // the file starts with >>planar_code<<
-	}
+//	if (input.tellg() == std::ios::beg) {
+//		input.ignore(15); // the file starts with >>planar_code<<
+//	}
 	graph.clear();
 	unsigned int num_nodes;
 	assert(input.good());
 	assert(!input.eof());
 	num_nodes = input.get();
-	if (num_nodes == '>' && input.peek() == '>') {
+	if (num_nodes == '>' && input.peek() == '>') { //file starts with >>planar_code<<
 		input.ignore(14);
 		num_nodes = input.get();
 		assert(num_nodes != '<');
 	}
 
-//	std::cout << "\t number of nodes: " << num_nodes << std::endl;
+	std::cout << "\t number of nodes: " << num_nodes << std::endl;
 	std::vector<node> nodes(num_nodes);
 
 	for(unsigned int i=0; i<nodes.size(); i++) {
@@ -69,9 +70,11 @@ istream& operator>>(istream& input, ugraph& graph) {
 		unsigned int adj_node;
 		adj_node = input.get();
 		while (adj_node!=0) {
-//			std::cout<< "\tEdge from " << i << " to " << (int)adj_node-1 << std::endl;
-			if (adj_node-1>i)
+			if (adj_node-1>i) {				std::cout<< "\tEdge from " << i << " to " << (int)adj_node-1 << std::endl;
+
 				graph.new_edge(nodes[i],nodes[adj_node-1]);
+
+			}
 			adj_node = input.get();
 			assert(input.good());
 		}
@@ -86,14 +89,14 @@ node merge_nodes(ugraph& g, node one, node two) {
 	edge e;
 	forall_adj_edges(e,one) {
 		node opp = opposite(e,one);
-		if (!edge_to[opp]) {
+		if (!edge_to[opp] && new_node!=opp) {
 			g.new_edge(new_node,opp);
 			edge_to[opp] = true;
 		}
 	}
 	forall_adj_edges(e,two) {
 		node opp = opposite(e,two);
-		if (!edge_to[opp]) {
+		if (!edge_to[opp] && new_node!=opp) {
 			g.new_edge(new_node,opp);
 			edge_to[opp] = true;
 		}
@@ -146,14 +149,32 @@ void glue_graphs(ugraph& one, ugraph& two, node& merge_one, node& merge_two) {
 	merge_one = merge_nodes(one,point_one, new_nodes[other_graph_point_one]);
 	merge_two = merge_nodes(one,point_two, new_nodes[other_graph_point_two]);
 
-	std::cout << "Merge nodes: " << merge_one->id() << " " << merge_two->id() << " from " << std::endl;
-	std::cout << point_one->id() << " " << new_nodes[other_graph_point_one]->id() << std::endl;
-	std::cout << point_two->id() << " " << new_nodes[other_graph_point_two]->id() << std::endl;
+//	std::cout << "Merge nodes: " << merge_one->id() << " " << merge_two->id() << " from " << std::endl;
+//	std::cout << point_one->id() << " " << new_nodes[other_graph_point_one]->id() << std::endl;
+//	std::cout << point_two->id() << " " << new_nodes[other_graph_point_two]->id() << std::endl;
 
 	delete[] new_nodes;
 
 	assert((unsigned int)one.number_of_nodes() == number_one_nodes + number_two_nodes - 2);
 }
 
+void write_planar_code(ugraph& g, std::ostream& out) {
+	node_array<unsigned char> ids(g,0);
+	unsigned char id=1;
+	node n;
+	forall_nodes(n,g) {
+		ids[n] = id++;
+	}
+	out << (unsigned char)g.number_of_nodes();
+	forall_nodes(n,g) {
+//		std::cout << ids[n] << std::endl;
+		edge e;
+		forall_adj_edges(e,n) {
+//			std::cout << "\t" << ids[opposite(e,n)] << std::endl;
+			out << ids[opposite(e,n)];
+		}
+		out << '\0';
+	}
+}
 
 
