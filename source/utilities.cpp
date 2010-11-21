@@ -1,11 +1,13 @@
 #include "triconnectivity.hpp"
 #include <ostream>
 #include <vector>
+#include <memory>
 
 using namespace leda;
 using std::endl;
 using std::istream;
 using std::ostream;
+using std::auto_ptr;
 
 //#define DETERMINISTIC_GLUE
 
@@ -47,7 +49,6 @@ istream& operator>>(istream& input, ugraph& graph) {
 //	if (input.tellg() == std::ios::beg) {
 //		input.ignore(15); // the file starts with >>planar_code<<
 //	}
-	graph.clear();
 	unsigned int num_nodes;
 	assert(input.good());
 	assert(!input.eof());
@@ -58,11 +59,24 @@ istream& operator>>(istream& input, ugraph& graph) {
 		assert(num_nodes != '<');
 	}
 
+#ifdef GRAPHREAD_COUT
 	std::cout << "\t number of nodes: " << num_nodes << std::endl;
-	std::vector<node> nodes(num_nodes);
+#endif
 
-	for(unsigned int i=0; i<nodes.size(); i++) {
-		nodes[i] = graph.new_node();
+	node* nodes = new node[num_nodes];
+
+	if (num_nodes != (unsigned int)graph.number_of_nodes()) {
+		graph.clear();
+		for(unsigned int i=0; i<num_nodes; i++) {
+			nodes[i] = graph.new_node();
+		}
+	} else {
+		node n;
+		unsigned int i=0;
+		forall_nodes(n,graph) {
+			nodes[i++] = n;
+		}
+		graph.del_all_edges();
 	}
 
 
@@ -70,7 +84,10 @@ istream& operator>>(istream& input, ugraph& graph) {
 		unsigned int adj_node;
 		adj_node = input.get();
 		while (adj_node!=0) {
-			if (adj_node-1>i) {				std::cout<< "\tEdge from " << i << " to " << (int)adj_node-1 << std::endl;
+			if (adj_node-1>i) {
+#ifdef GRAPHREAD_COUT
+				std::cout<< "\tEdge from " << i << " to " << (int)adj_node-1 << std::endl;
+#endif
 
 				graph.new_edge(nodes[i],nodes[adj_node-1]);
 
@@ -79,6 +96,7 @@ istream& operator>>(istream& input, ugraph& graph) {
 			assert(input.good());
 		}
 	}
+	delete[] nodes;
 	input.peek();
 	return input;
 }
@@ -177,4 +195,76 @@ void write_planar_code(ugraph& g, std::ostream& out) {
 	}
 }
 
+auto_ptr<ugraph> triconnected_graph(const unsigned int n) {
+	auto_ptr<ugraph> g(new ugraph());
+	assert(n>=4);
+
+	//start with k4
+	node* nodes = new node[n];
+	unsigned int node_ptr=4;
+
+	{
+		const unsigned int num_nodes = 4;
+		const unsigned int max_degree = 3;
+	    for(unsigned int i=0; i<num_nodes; i++) {
+	        nodes[i] = g->new_node();
+	    }
+	    int edges[num_nodes][max_degree] = {
+	    		{1,3,2},
+	    		{2,3,-1},
+	    		{3,-1,-1},
+	    		{-1,-1,-1}
+	    };
+
+	    for(unsigned int i=0; i<num_nodes; i++) {
+	        for(unsigned int j=0; j<max_degree; j++) {
+	            if (edges[i][j]>=0) {
+	                g->new_edge(nodes[i],nodes[edges[i][j]]);
+	            }
+	        }
+	    }
+	    {   edge_array<int> edges(*g);
+	        edge e;
+	        forall_edges(e,*g) {
+	            edges[e] = target(e)->id();
+	        }
+	        g->bucket_sort_edges(edges);
+	    }
+	}
+
+	node neighbours[3];
+	random_source r;
+	for(unsigned int i = 0; i<n-4; i++) {
+		if (i%(n/20)==0) {
+			std::cout << '-';
+			std::cout.flush();
+		}
+		unsigned int u,v,w;
+
+		do {
+			u = r.get() % node_ptr;
+			v = r.get() % node_ptr;
+			w = r.get() % node_ptr;
+
+//			neighbours[0] = g->choose_node();
+//			neighbours[1] = g->choose_node();
+//			neighbours[2] = g->choose_node();
+//			assert(neighbours[0]!=0);
+//			assert(neighbours[1]!=0);
+//			assert(neighbours[2]!=0);
+		} while (u==v || v==w || w == u);
+
+		neighbours[0] = nodes[u];
+		neighbours[1] = nodes[v];
+		neighbours[2] = nodes[w];
+
+		nodes[node_ptr] = g->new_node();
+		g->new_edge(nodes[node_ptr],neighbours[0]);
+		g->new_edge(nodes[node_ptr],neighbours[1]);
+		g->new_edge(nodes[node_ptr],neighbours[2]);
+		node_ptr++;
+	}
+	delete[] nodes;
+	return g;
+}
 

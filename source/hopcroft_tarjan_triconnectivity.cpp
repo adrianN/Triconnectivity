@@ -15,14 +15,14 @@ using std::auto_ptr;
 
 using namespace leda;
 
-#define DOTS
+//#define DOTS
 //#define DFSCOUT
 //#define PHI_COUT
 //#define PATHFINDER_COUT
-#define PATHFINDER_PATH_COUT
-#define PATHSEARCH_COUT
-#define STACK_COUT
-#define PATHSEARCH_COUT_SEPPAIR
+//#define PATHFINDER_PATH_COUT
+//#define PATHSEARCH_COUT
+//#define STACK_COUT
+//#define PATHSEARCH_COUT_SEPPAIR
 #define RECORD_NODES
 
 /*
@@ -343,8 +343,9 @@ private:
         assert(number[target(e)] > 0);
         unsigned int v = number[source(e)];
         unsigned int w = number[target(e)];
+        const bool frond = is_frond[e];
 
-        if (is_frond[e]) { //fronds go from big to small, other nodes from small to big.
+        if (frond) { //fronds go from big to small, other nodes from small to big.
         	if (v<w) swap(v,w);
         } else {
         	if (v>w) swap(v,w);
@@ -365,7 +366,7 @@ private:
         std::cout << "Edge-phi " << v << " " << w << " " << phi << " " << type << std::endl;
 #endif
 
-        if (is_frond[e]) return 3*w+1; // this goes in the middle. Remark: If the graph is biconnected, I don't think we need the +1 -- as lowpoint_one[w] < w --, but it doesn't hurt either.
+        if (frond) return 3*w+1; // this goes in the middle. Remark: If the graph is biconnected, I don't think we need the +1 -- as lowpoint_one[w] < w --, but it doesn't hurt either.
 
         if (lowpoint_two[w] < v) return 3*lowpoint_one[w]; //lowpoint_one[w] < w in biconnected graphs, so this is smaller than the first number
 
@@ -445,7 +446,9 @@ private:
 
         { node n;
 			forall_nodes(n,the_graph) {
-				number[n] = old_new_map[number[n]];
+				const unsigned int new_number = old_new_map[number[n]];
+				number[n] = new_number;
+				node_at[new_number] = n;
 			}
         }
 
@@ -484,12 +487,13 @@ private:
 		std::cout << "DFS " << node_v->id() << " " << node_v << " ";
 #endif
 		assert(next_number>0);
-        number[node_v] = next_number++;
+		const unsigned int v = next_number++;
+
+        number[node_v] = v;
 
         assert(number[node_v]>0);
         assert(number[node_v]<=number_of_nodes);
-        const unsigned int v = number[node_v];
-        node_at[v] = node_v;
+//        node_at[v] = node_v;
 
         assert(parent < v);
         assert(v>0);
@@ -635,7 +639,7 @@ private:
         new_number[node_v] = v;
         assert(new_number[node_v]>0);
 
-        node_at[v] = node_v;
+//        node_at[v] = node_v;
 #ifdef PATHFINDER_COUT
         std::cout << "Pathfinder " << node_v->id() << " Newnum " << v << " to be seen " << nodes_to_be_seen << " nd " << number_descendants[node_v] << std::endl;
 #endif
@@ -647,21 +651,23 @@ private:
 
                 const node node_w = opposite(vw,node_v);
                 const unsigned int w = new_number[node_w];
+                const bool frond = is_frond[vw];
 
-                if ((w==0 || w>v)&& is_frond[vw]) {
-#ifdef PATHFINDER_COUT
-                	std::cout << "Skip frond in wrong direction " << std::endl;
-#endif
-                	continue;
+                if (frond) {
+					if ((w==0 || w>v)) {
+	#ifdef PATHFINDER_COUT
+						std::cout << "Skip frond in wrong direction " << std::endl;
+	#endif
+						continue;
+					}
+                } else {
+					if (w>0 && w<v) {
+	#ifdef PATHFINDER_COUT
+						std::cout << "Skip edge to parent " << std::endl;
+	#endif
+						continue;
+					}
                 }
-
-                if (w>0 && w<v && !is_frond[vw]) {
-#ifdef PATHFINDER_COUT
-                	std::cout << "Skip edge to parent " << std::endl;
-#endif
-                	continue;
-                }
-
 				if (at_path_start) {
 #ifdef PATHFINDER_PATH_COUT
 					std::cout << std::endl << "Path ";
@@ -673,7 +679,7 @@ private:
 				std::cout << node_v->id() << "->" << node_w->id() << " " ;
 #endif
 
-                if (!is_frond[vw] ) {
+                if (!frond) {
 #ifdef PATHFINDER_COUT
                 		std::cout << "\ttree edge " << std::endl;
 #endif
@@ -759,27 +765,29 @@ private:
             //num_unexplored_adj_edges--;
             const node node_w = opposite(vw,node_v);
             const bool frond = is_frond[vw];
+            const bool first_on_path = is_first_on_path[vw];
             const unsigned int w = number[node_w];
 #ifdef PATHSEARCH_COUT
             std::cout << "\tEdge " << source(vw)->id() << " " << target(vw)->id() << std::endl;
 #endif
 
-            if (w < v && !frond) {
-#ifdef PATHSEARCH_COUT
-				std::cout << "Skip backedge to parent " << source(vw)->id() << " " << target(vw) -> id() << " from " << node_v->id() << std::endl;
-#endif
-				continue;
+            if (frond) {
+            	if (v < w) {
+	#ifdef PATHSEARCH_COUT
+					std::cout << "Skip frond in the wrong direction " << node_v->id() << " " << node_w->id() << std::endl;
+	#endif
+					continue;
+				}
+            } else {
+            	if (w < v) {
+	#ifdef PATHSEARCH_COUT
+					std::cout << "Skip backedge to parent " << source(vw)->id() << " " << target(vw) -> id() << " from " << node_v->id() << std::endl;
+	#endif
+					continue;
+				}
             }
 
-            if (is_frond[vw] && v < w) {
-#ifdef PATHSEARCH_COUT
-            	std::cout << "Skip frond in the wrong direction " << node_v->id() << " " << node_w->id() << std::endl;
-#endif
-				continue;
-            }
-
-
-            if (is_first_on_path[vw])
+            if (first_on_path)
                 update_stack(vw,node_w, w, v,current_t_stack);
 
             if (frond) {
@@ -881,7 +889,7 @@ private:
 				}
             }
 
-            if (is_first_on_path[vw]) {
+            if (first_on_path) {
 #ifdef PATHSEARCH_COUT
             	std::cout << "Deleting stack ";
             	print_stack(*current_t_stack);

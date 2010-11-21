@@ -252,10 +252,45 @@ void test_separation_pairs(std::istream& cin) {
     	cin >> one;
     	if (cin.eof()) return;
     	cin >> two;
+
+
+    	if (!hopcroft_tarjan_is_triconnected_nc(one,s1,s2)) {
+    		cout << "drama "<< graph_number << endl;
+			std::ostringstream s;
+			s << "./sep_pair_graph" << graph_number << "_a.dot";
+			{	std::fstream dot(s.str().c_str(), std::ios::out);
+				simple_to_dot(one,dot);
+				dot.close();
+			}
+			s.seekp((long)s.tellp()-4);
+			s << ".tri";
+			{	std::fstream tri(s.str().c_str(),std::ios::out);
+				write_planar_code(one,tri);
+				tri.close();
+			}
+			//exit(-1);
+    	}
+
+    	if (!hopcroft_tarjan_is_triconnected_nc(two,s1,s2)) {
+    		cout << "drama "<< graph_number << endl;
+			std::ostringstream s;
+			s << "./sep_pair_graph" << graph_number << "_b.dot";
+			{	std::fstream dot(s.str().c_str(), std::ios::out);
+				simple_to_dot(two,dot);
+				dot.close();
+			}
+			s.seekp((long)s.tellp()-4);
+			s << ".tri";
+			{	std::fstream tri(s.str().c_str(),std::ios::out);
+				write_planar_code(two,tri);
+				tri.close();
+			}
+			//exit(-1);
+    	}
+
+
+
     	glue_graphs(one,two,s1,s2);
-
-
-    	to_file(one,"initial");
 
     	const bool triconnected = hopcroft_tarjan_is_triconnected_nc(one,found1,found2);
     	bool correct_pair = false;
@@ -284,9 +319,11 @@ void test_separation_pairs(std::istream& cin) {
 			//exit(-1);
     	}
 
-    	if (graph_number % 10000 == 0)
+    	if (graph_number % 5000 == 0) {
     		cout << '.';
-    	if (graph_number % 100000 == 0)
+    		cout.flush();
+    	}
+    	if (graph_number % 50000 == 0)
     		cout << '\n';
     }
 
@@ -445,33 +482,37 @@ void reduce(ugraph& g) {
 }
 
 int main(int argc, char* argv[]) {
-//	{	std::fstream f("./out.txt", std::ios::in);
-//		cout << "Testing separation pairs " << std::endl;
-//		test_separation_pairs(f);
-//		f.close();
-//	}
-//	{	std::fstream f("./out.txt", std::ios::in);
-//
-//		cout << "Testing plantri" << std::endl;
-//		plantri_test(f);
-//	}
 
-
-	ugraph test;
-	std::fstream testcase(argv[1], std::ios::in);
-	assert(testcase.good());
-	testcase >> test;
-	cout << test.number_of_nodes() << endl;
-
-//	reduce(test);
-
-	node s1=NULL,s2=NULL;
-	bool tc = hopcroft_tarjan_is_triconnected_nc(test,s1,s2);
-	cout << "tc " << tc << endl;
-	if (!tc) {
-		cout << s1->id() << endl;
-		cout << s2->id() << endl;
+	if (argc > 1)
+	{	std::fstream f(argv[1], std::ios::in);
+		cout << "Testing separation pairs " << std::endl;
+		test_separation_pairs(f);
+		f.close();
+	} else {
+		test_separation_pairs(std::cin);
 	}
+
+//	auto_ptr<ugraph> g = triconnected_graph(50000);
+//	node s1,s2;
+//	std::cout << "go" << std::endl;
+//	hopcroft_tarjan_is_triconnected_nc(*g,s1,s2);
+
+//
+//	ugraph test;
+//	std::fstream testcase(argv[1], std::ios::in);
+//	assert(testcase.good());
+//	testcase >> test;
+//	cout << test.number_of_nodes() << endl;
+//
+////	reduce(test);
+//
+//	node s1=NULL,s2=NULL;
+//	bool tc = hopcroft_tarjan_is_triconnected_nc(test,s1,s2);
+//	cout << "tc " << tc << endl;
+//	if (!tc) {
+//		cout << s1->id() << endl;
+//		cout << s2->id() << endl;
+//	}
 
     return 0;
 }

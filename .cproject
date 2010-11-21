@@ -30,7 +30,7 @@
 <option id="gnu.cpp.compiler.option.warnings.pedantic.1965342864" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.2106247478" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.443094116" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.compiler.option.other.other.1746411118" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -W -Wextra -Wno-unused" valueType="string"/>
+<option id="gnu.cpp.compiler.option.other.other.1746411118" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -W -Wextra -Wno-unused -DNDEBUG" valueType="string"/>
 <option id="gnu.cpp.compiler.option.debugging.gprof.1881566456" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.level.461664337" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 <option id="gnu.cpp.compiler.option.optimization.flags.1147388332" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-mtune=native -march=native" valueType="string"/>
@@ -52,7 +52,7 @@
 <option id="gnu.cpp.link.option.debugging.gprof.771518562" name="Generate gprof information (-pg)" superClass="gnu.cpp.link.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.link.option.flags.1023562107" name="Linker flags" superClass="gnu.cpp.link.option.flags" value="" valueType="string"/>
 <option id="gnu.cpp.link.option.debugging.prof.533912648" name="Generate prof information (-p)" superClass="gnu.cpp.link.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.link.option.other.1737547968" name="Other options (-Xlinker [option])" superClass="gnu.cpp.link.option.other" valueType="stringList"/>
+<option id="gnu.cpp.link.option.other.1737547968" name="Other options (-Xlinker [option])" superClass="gnu.cpp.link.option.other"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1608762921" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 <additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 <additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -410,10 +410,10 @@
 <option id="gnu.cpp.compiler.option.warnings.pedantic.575211260" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.1779862144" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.2134485618" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.compiler.option.other.other.423433099" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -DNDEBUG" valueType="string"/>
+<option id="gnu.cpp.compiler.option.other.other.423433099" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c" valueType="string"/>
 <option id="gnu.cpp.compiler.option.debugging.gprof.1307214377" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.compiler.option.debugging.level.1167737840" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.default" valueType="enumerated"/>
-<option id="gnu.cpp.compiler.option.optimization.flags.1330428707" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-march=opteron -mcpu=opteron" valueType="string"/>
+<option id="gnu.cpp.compiler.option.debugging.level.1167737840" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
+<option id="gnu.cpp.compiler.option.optimization.flags.1330428707" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-march=opteron -mtune=opteron" valueType="string"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1069553680" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool command="gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.c.compiler.base.743108090" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
@@ -433,7 +433,7 @@
 <option id="gnu.cpp.link.option.debugging.gprof.2001014782" name="Generate gprof information (-pg)" superClass="gnu.cpp.link.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.link.option.flags.60369538" name="Linker flags" superClass="gnu.cpp.link.option.flags" value="-static" valueType="string"/>
 <option id="gnu.cpp.link.option.debugging.prof.433017256" name="Generate prof information (-p)" superClass="gnu.cpp.link.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.link.option.other.913314" name="Other options (-Xlinker [option])" superClass="gnu.cpp.link.option.other" valueType="stringList"/>
+<option id="gnu.cpp.link.option.other.913314" name="Other options (-Xlinker [option])" superClass="gnu.cpp.link.option.other"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.351230351" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 <additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 <additionalInput kind="additionalinput" paths="$(LIBS)"/>
