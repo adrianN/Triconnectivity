@@ -492,10 +492,12 @@ int main(int argc, char* argv[]) {
 		test_separation_pairs(std::cin);
 	}
 
-//	auto_ptr<ugraph> g = triconnected_graph(50000);
-//	node s1,s2;
-//	std::cout << "go" << std::endl;
-//	hopcroft_tarjan_is_triconnected_nc(*g,s1,s2);
+	for(int i=0; i<10; i++) {
+		auto_ptr<ugraph> g = triconnected_graph(50000);
+		node s1,s2;
+		std::cout << "go" << std::endl;
+		hopcroft_tarjan_is_triconnected_nc(*g,s1,s2);
+	}
 
 //
 //	ugraph test;

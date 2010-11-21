@@ -45,10 +45,7 @@ void simple_to_dot(const ugraph& g, std::ostream& out) {
 }
 
 istream& operator>>(istream& input, ugraph& graph) {
-//	std::cout << "Graph input " << input.tellg() << std::endl;
-//	if (input.tellg() == std::ios::beg) {
-//		input.ignore(15); // the file starts with >>planar_code<<
-//	}
+
 	unsigned int num_nodes;
 	assert(input.good());
 	assert(!input.eof());

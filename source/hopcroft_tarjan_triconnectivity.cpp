@@ -96,8 +96,9 @@ class palm_tree {
 public:
 
     palm_tree(ugraph& g) :
-        number_of_nodes((assert(g.number_of_nodes()>=0), g.number_of_nodes())),
+        number_of_nodes((assert(g.number_of_nodes()>=0), (unsigned int)g.number_of_nodes())),
         is_biconnected(true),
+        articulation_point(NULL),
         the_graph(g),
         number(the_graph,0),
         number_descendants(the_graph,0),
@@ -136,9 +137,13 @@ public:
         std::cout << "Output during Pathsearch" << std::endl;
 #endif
 
-
+        /* Compute a palm tree, lowpoints etc. and build an acceptable adjacency structure */
         step_one();
-        step_two();
+        /* Renumber the vertices according to new adjacency. Compute paths and highpoints. If the graph is not biconnected
+         * there is no point in doing that. */
+        if (is_biconnected) {
+        	step_two();
+        }
 
 
     };
@@ -175,12 +180,13 @@ public:
         return pathsearch(the_graph.first_node(),s1,s2);
     }
 
+    /* Output the palm tree and related information in dot format */
     void to_dot(std::ostream& out) {
         out << "digraph G {" << std:: endl;
         {
             node n;
             forall_nodes(n,the_graph) {
-                int num = number[n];
+                unsigned int num = number[n];
                 int id = n->id();
 #ifdef RECORD_NODES
                 /*
@@ -215,6 +221,7 @@ public:
             }
         }
         {
+        	/* Edges are labeled with 1 if they start a path (0 oth.) and the value they by which they get ordered (phi) */
             edge e;
             unsigned int num_of_fronds = 0, paths=0;
             forall_edges(e,the_graph) {
@@ -247,27 +254,27 @@ private:
 
     const unsigned int number_of_nodes;
     bool is_biconnected;
-    node articulation_point;
+    node articulation_point; /* only set if !is_biconnected */
     ugraph& the_graph;
 
-    node_array<unsigned int> number; //stores the step in which a node is reached during DFS
+    node_array<unsigned int> number; //stores the step in which a node is reached during DFS. Numbering starts at 1.
     node_array<unsigned int> number_descendants;
-    node_array<unsigned int> highpoint;
+    node_array<unsigned int> highpoint; // if w-->v is the first of the fronds ending at v that gets traversed, highpoint[v]=w
 
 
 
     edge_array<bool> is_frond; //true if edge is a frond.
-    edge_array<bool> is_first_on_path;
+    edge_array<bool> is_first_on_path; // true if edge starts a path
 
     unsigned int* lowpoint_one; //stores for each node the first lowpoint
     unsigned int* lowpoint_two;
     unsigned int* father;
-    node* const node_at;
+    node* const node_at; //a reverse map to number, needed to find nodes to return as separation pairs
 
+    /* t_stacks hold potential type-2 pairs. We start a new t_stack for each circle we recursively check, hence t_stacks */
     typedef stack<three_tuple<unsigned int, unsigned int, unsigned int> > t_stack_type;
     t_stack_type* current_t_stack;
     stack<t_stack_type* > t_stacks;
-    //stack<edge> e_stack;
 
 #ifdef DOTS
 	int num_call;
@@ -281,13 +288,13 @@ private:
          * Step one, compute information and reorder edges
          */
 
-        {   node n;
+        {   node n; // BUGFIX for LEDA
             forall_nodes(n,the_graph) {
                 number[n] = 0;
                 number_descendants[n] = 0;
             }
         }
-        {   edge e;
+        {   edge e; // BUGFIX for LEDA
             forall_edges(e,the_graph) {
                 is_frond[e] = false;
             }
@@ -297,7 +304,7 @@ private:
         for(unsigned int i=0; i<number_of_nodes+1; i++) {
             seen_edge_to_parent[i] = false;
             father[i] = 0;
-            lowpoint_one[i] = 0; // but it is used that this is <0
+            lowpoint_one[i] = 0; // it is used that this is ==0
             lowpoint_two[i] = 0;
         }
 
@@ -332,7 +339,7 @@ private:
     }
 
     /* This function realizes the ordering of the edges. We want that
-     * - the edges vw are ordered ascending in order of lowpoint_one[w] (we want to create paths that end at the lowest possible point
+     * - the edges vw are ordered ascending in order of lowpoint_one[w] (we want to create paths that end at the lowest possible point)
      * - for children w_1,...,w_n of v with lowpoint_one[w_i] = u (u<v) in the order given by the adjacency list. Then there exists an
      *   i_0, such that lowpoint_two[w_i] < v for i<=i_0 and lowpoint_two[w_j] >= v for i_0 < j. If v --> u is in E then v --> u comes in Adj(v) between v -> w_i0 and v -> w_i0+1
      *
@@ -343,14 +350,6 @@ private:
         assert(number[target(e)] > 0);
         unsigned int v = number[source(e)];
         unsigned int w = number[target(e)];
-        const bool frond = is_frond[e];
-
-        if (frond) { //fronds go from big to small, other nodes from small to big.
-        	if (v<w) swap(v,w);
-        } else {
-        	if (v>w) swap(v,w);
-        }
-
 
         assert(w<=number_of_nodes);
         assert(v<=number_of_nodes);
@@ -366,9 +365,15 @@ private:
         std::cout << "Edge-phi " << v << " " << w << " " << phi << " " << type << std::endl;
 #endif
 
-        if (frond) return 3*w+1; // this goes in the middle. Remark: If the graph is biconnected, I don't think we need the +1 -- as lowpoint_one[w] < w --, but it doesn't hurt either.
+        if (is_frond[e]) {
+        	if (v<w) swap(v,w); //fronds go from big to small, other edges from small to big.
+        	return 3*w+1; // this usually goes in the middle. Remark: If the graph is biconnected, I don't think we need the +1 -- as lowpoint_one[w] < w --, but it doesn't hurt either.
+        }
 
-        if (lowpoint_two[w] < v) return 3*lowpoint_one[w]; //lowpoint_one[w] < w in biconnected graphs, so this is smaller than the first number
+		if (v>w) swap(v,w);
+
+
+        if (lowpoint_two[w] < v) return 3*lowpoint_one[w];
 
         // if two children have the same lowpoint_one, order those with lowpoint_two > v at the end.
         return 3*lowpoint_one[w]+2;
@@ -385,7 +390,6 @@ private:
 
             the_graph.bucket_sort_edges(phi_value);
         }
-        //the_graph.bucket_sort_nodes(number); // this is probably unnecessary.
     }
 
     void step_two(void) {
@@ -418,7 +422,6 @@ private:
 			{ node n;
 				forall_nodes(n,the_graph) {
 					old_new_map[number[n]] = new_number[n];
-//					std::cout << "old2new " << number[n] << " " << new_number[n] << std::endl;
 				}
 			}
     	}
@@ -431,29 +434,23 @@ private:
 			forall_nodes(n,the_graph) {
 				const unsigned int v = number[n];
 				const unsigned int new_v = old_new_map[v];
+
 				new_lp1[new_v] = old_new_map[lowpoint_one[v]];
 				new_lp2[new_v] = old_new_map[lowpoint_two[v]];
 				new_father[new_v] = old_new_map[father[v]];
+
+				number[n] = new_v;
+				node_at[new_v] = n;
 			}
         }
 
+        delete[] old_new_map;
         delete[] lowpoint_one;
         delete[] lowpoint_two;
         delete[] father;
         lowpoint_one = new_lp1;
         lowpoint_two = new_lp2;
         father = new_father;
-
-        { node n;
-			forall_nodes(n,the_graph) {
-				const unsigned int new_number = old_new_map[number[n]];
-				number[n] = new_number;
-				node_at[new_number] = n;
-			}
-        }
-
-        delete[] old_new_map;
-
 
 #ifdef DOTS
         std::fstream f("./step_2.dot", std::ios::trunc | std::ios::out);
@@ -563,7 +560,7 @@ private:
     						} else {
     							std::cout << "edge from " << v  << " to " << w << " lowpoint_one[w] " << lowpoint_one[w] << std::endl;
     						}
-    						articulation_point = node_at[v];
+    						articulation_point = node_v;
     					}
                     }
 
@@ -619,12 +616,12 @@ private:
 
     /**
      * This function does a dfs on an acceptable adjacency structure and finds special edge disjoint paths in the palm tree.
-     * A path as found by this function always ends at a frond and, because of the ordering in the adjecency structure,
+     * A path as found by this function always ends at a frond and, because of the ordering in the adjacency structure,
      * always ends at the lowest possible vertex.
      *
      * It also numbers the nodes in the inverse order of traversal, according to the ordering in the acceptable adjacency structure, and computes
      * - node_at[v], a reverse map from node numbers to LEDA nodes
-     * - highpoint[v], for nodes at which fronds end, the node with the lowest (according to the new numbering) number at the source of a frond.
+     * - highpoint[v], for nodes at which fronds end, the node with the highest (according to the new numbering) number at the source of a frond.
      */
     void pathfinder(node node_v, bool& at_path_start, unsigned int nodes_to_be_seen, node_array<unsigned int>& new_number) {
         assert(nodes_to_be_seen <=number_of_nodes);
@@ -668,11 +665,12 @@ private:
 						continue;
 					}
                 }
+
 				if (at_path_start) {
 #ifdef PATHFINDER_PATH_COUT
 					std::cout << std::endl << "Path ";
 #endif
-					is_first_on_path[vw] = at_path_start; //if we see edges again that are true, don't set it to false
+					is_first_on_path[vw] = at_path_start;
 					at_path_start=false;
 				}
 #ifdef PATHFINDER_PATH_COUT
@@ -754,15 +752,13 @@ private:
     bool pathsearch (node node_v, node &s1, node &s2)
     {
         const unsigned int v = number[node_v];
+        const unsigned int nd_v = number_descendants[node_v];
 #ifdef PATHSEARCH_COUT
         std::cout<< "Pathsearch: " << v << " " << node_at[v]->id() << std::endl;
 #endif
 
-        //unsigned int num_unexplored_adj_edges = the_graph.degree(node_v);
-
         edge vw;
         forall_adj_edges(vw,node_v) {
-            //num_unexplored_adj_edges--;
             const node node_w = opposite(vw,node_v);
             const bool frond = is_frond[vw];
             const bool first_on_path = is_first_on_path[vw];
@@ -796,6 +792,44 @@ private:
 #endif
             	continue;
             }
+
+            /* Check for type one pairs
+             * 1. There are distinct vertices r != a,b and s!=a,b such that
+             * 		i) b->r,
+             * 		ii) lowpoint_one[r]=a,
+             * 		iii) lowpoint_two[r] >= b and
+             * 		iv) s is not a descendant of r
+             *
+             * With the current variable naming, r is "w", b is "v" and a is "lowpoint_one[w]". We need to make sure that there is a vertex s. For this it is sufficient
+             * to check that either father[v] is not the root (otherwise v > lowpoint_one[w] => lowpoint_one[w] = root = a) or v has other children than w.
+             *
+             * Unlike it Hopcroft's original writeup we perform this test before recursing. Since we don't want to find the separation classes we can perform this safely
+             * and gain some early returns.
+             */
+
+            // i satisfied by choice of edge v -> w
+            // if lowpoint_two[v] >= v and lowpoint_one[w] >= v removal of node v should disconnect the graph => not biconnected.
+            {
+            	const unsigned int b = v;
+            	const unsigned int a = lowpoint_one[w];
+#ifdef PATHSEARCH_COUT
+            	std::cout << "Possible type 1 pair: " << a << " " << b << std::endl;
+#endif
+
+				if (/* iii */ lowpoint_two[w] >= b && a < b && (father[b] != 1 || nd_v - number_descendants[node_w] > 1))
+				{
+					s1 = node_at[a]; // ii
+					s2 = node_v;
+#ifdef PATHSEARCH_COUT_SEPPAIR
+					std::cout << a << " and " << b << " are a type-1 pair (";
+					std::cout << s1->id() << ", " << s2->id() << ")" << std::endl;
+					std::cout << (lowpoint_two[w] >= a) << " " << (a < b) << " " << (father[b]!=1) << " " << (number_descendants[node_v] - number_descendants[node_w]) << std::endl;
+					std::cout << "w = " << w << std::endl;
+#endif
+					return false;
+				}
+            }
+
 
             if (!pathsearch(node_w,s1,s2))
                 return false;
@@ -854,40 +888,7 @@ private:
                 }
             }
 
-            /* Check for type one pairs
-             * 1. There are distinct vertices r != a,b and s!=a,b such that
-             * 		i) b->r,
-             * 		ii) lowpoint_one[r]=a,
-             * 		iii) lowpoint_two[r] >= b and
-             * 		iv) s is not a descendant of r
-             *
-             * With the current variable naming, r is "w", b is "v" and a is "lowpoint_one[w]". We need to make sure that there is a vertex s. For this it is sufficient
-             * to check that either father[v] is not the root (otherwise v > lowpoint_one[w] => lowpoint_one[w] = root = a) or v has other children than w.
-             *
-             */
 
-            // i satisfied by choice of edge v -> w
-            // if lowpoint_two[v] >= v and lowpoint_one[w] >= v removal of node v should disconnect the graph => not biconnected.
-            {
-            	const unsigned int b = v;
-            	const unsigned int a = lowpoint_one[w];
-#ifdef PATHSEARCH_COUT
-            	std::cout << "Possible type 1 pair: " << a << " " << b << std::endl;
-#endif
-
-				if (/* iii */ lowpoint_two[w] >= b && a < b && (father[b] != 1 || number_descendants[node_v] - number_descendants[node_w] > 1))
-				{
-					s1 = node_at[a]; // ii
-					s2 = node_v;
-#ifdef PATHSEARCH_COUT_SEPPAIR
-					std::cout << a << " and " << b << " are a type-1 pair (";
-					std::cout << s1->id() << ", " << s2->id() << ")" << std::endl;
-					std::cout << (lowpoint_two[w] >= a) << " " << (a < b) << " " << (father[b]!=1) << " " << (number_descendants[node_v] - number_descendants[node_w]) << std::endl;
-					std::cout << "w = " << w << std::endl;
-#endif
-					return false;
-				}
-            }
 
             if (first_on_path) {
 #ifdef PATHSEARCH_COUT
@@ -905,7 +906,7 @@ private:
              *
              * becomes violated. Remember
              *
-             * highpoint[v], for nodes at which fronds end, the node with the lowest number at the source of a frond.
+             * highpoint[v], for nodes at which fronds end, the node with the highest number at the source of a frond.
              *
              * So if highpoint[v] > h for a potential sep. pair (h,a,b), a<v<b, that means that in the corresponding split
              * component there is a frond back into the part between a and b and hence it can't be a valid separation pair.
@@ -913,10 +914,11 @@ private:
 #ifdef PATHSEARCH_COUT
             std::cout << "Deleting things from stack with h < highpoint["<< v << "] = " << highpoint[node_v] << std::endl;
 #endif
+            const unsigned int hp_v = highpoint[node_v];
             while (!current_t_stack->empty()
                     && current_t_stack->top().second() != v
                     && current_t_stack->top().third() != v
-                    && highpoint[node_v] > current_t_stack->top().first()) {
+                    && hp_v > current_t_stack->top().first()) {
 #ifdef PATHSEARCH_COUT
 				std::cout << "Not a type 2 pair (hp) (" <<  current_t_stack->top().first() << ", " << current_t_stack->top().second() << ", " << current_t_stack->top().third() << ")" << std::endl;
 #endif
@@ -990,6 +992,7 @@ private:
 #ifdef STACK_COUT
             std::cout << "Possible type 2 pair: " << hab.first() << " " << hab.second() << " " << hab.third() << std::endl;
 #endif
+            //make sure the nested order of the stack isn't violated
             assert(current_t_stack->empty() || (current_t_stack->top().second() <= hab.second() && current_t_stack->top().third() >= hab.third()));
             assert(hab.second() <= v);
             assert(hab.third() >= v);
