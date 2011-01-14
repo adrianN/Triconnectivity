@@ -8,6 +8,8 @@ using std::endl;
 using std::istream;
 using std::ostream;
 using std::auto_ptr;
+using std::cout;
+using std::endl;
 
 //#define DETERMINISTIC_GLUE
 
@@ -124,7 +126,9 @@ node merge_nodes(ugraph& g, node one, node two) {
 
 /* Takes two graphs and indentifies two nodes from each to form a new graph with exactly one separation pair. The result is stored in one. The separation pair is stored in the node arguments */
 void glue_graphs(ugraph& one, ugraph& two, node& merge_one, node& merge_two) {
+#ifndef NDEBUG
 	const unsigned int number_one_nodes = one.number_of_nodes();
+#endif
 	const unsigned int number_two_nodes = two.number_of_nodes();
 
 #ifdef DETERMINISTIC_GLUE
@@ -263,5 +267,86 @@ auto_ptr<ugraph> triconnected_graph(const unsigned int n) {
 	}
 	delete[] nodes;
 	return g;
+}
+
+void reduce(ugraph& g) {
+	char c=0;
+	ugraph h(g);
+	char i='a';
+	while (c!='x') {
+		node s1=NULL,s2=NULL;
+		bool tc = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
+		std::cout << "tc " << tc << std::endl;
+		if (!tc) {
+			std::cout << s1->id() << std::endl;
+			std::cout << s2->id() << std::endl;
+		}
+
+		i++;
+		{
+			std::string s = "reduced";
+			s+=i;
+			s+=".tri";
+			std::fstream reduced(s.c_str(),std::ios::out);
+			write_planar_code(g,reduced);
+			reduced.close();
+		}
+		std::cin >> c;
+		switch(c) {
+		case 'd': {
+			int n;
+			std::cin >> n;
+			node no;
+			CopyGraph(h,g);
+			forall_nodes(no,g) {
+				if (no->id() == n) {
+					g.del_node(no);
+					break;
+				}
+			}
+			break;
+		}
+		case 'm': {
+			int n,m;
+			std::cin >> n;
+			std::cin >> m;
+			node non=0,nom=0;
+			node no;
+			forall_nodes(no,g) {
+				if (no->id() == n)
+					non = no;
+				if (no->id() == m)
+					nom = no;
+			}
+			CopyGraph(h,g);
+
+			merge_nodes(g,non,nom);
+			break;
+		}
+		case 'e': {
+			int n,m;
+			std::cin >> n;
+			std::cin >> m;
+			edge e;
+			edge f=0;
+			forall_edges(e,g) {
+				if ((source(e)->id() == n && target(e)->id() == m) || (source(e)->id() == m && target(e)->id() == n)) {
+					f = e;
+					break;
+				}
+			}
+			CopyGraph(h,g);
+
+			g.del_edge(f);
+			break;
+		}
+		case 'u': {
+			CopyGraph(g,h);
+			break;
+		}
+		}
+
+	}
+
 }
 
