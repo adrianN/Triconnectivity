@@ -125,6 +125,7 @@ node merge_nodes(ugraph& g, slist<node> nodes) {
 			if (no_more_edges_to[v]) continue;
 
 			no_more_edges_to[v] = true;
+
 			g.new_edge(new_node,v);
 		}
 	}

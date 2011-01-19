@@ -45,26 +45,11 @@ public:
 		ugraph g;
 		connect_forest(g, sorted_asc, 1);
 
-		fstream f("./interval1.dot", std::ios::out);
-		to_dot(g,labels(g,sorted_asc,1),f);
-		f.close();
-
 		connect_forest(g, sorted_dsc, 0);
-
-		f.open("./interval2.dot", std::ios::out);
-		to_dot(g,labels(g,sorted_asc,0),f);
-		f.close();
 
 		glue_trees(g, sorted_asc);
 
-		f.open("./interval3.dot", std::ios::out);
-		to_dot(g,labels(g,sorted_asc,0),f);
-		f.close();
-
 		glue_equivalence_classes(g, equivalent_intervals);
-		f.open("./interval4.dot", std::ios::out);
-		to_dot(g,labels(g,sorted_asc,0),f);
-		f.close();
 
 		node* ordered = new node[g.number_of_nodes()];
 		const node startnode = start->represented_by[0];
@@ -79,7 +64,6 @@ public:
 			interval<A>* i;
 			forall(i, sorted_asc) {
 				belongs_to[i->represented_by[0]] = i;
-				std::cout << "node " << i->represented_by[0]->id() << " " << i->cont << std::endl;
 			}
 		}
 
@@ -104,14 +88,12 @@ private:
 
 	//returns an array with node->interval assocs
 	static void connect_forest(ugraph& g, const slist<interval<A>* >& input_list, unsigned int side) {
-
-		std::vector<interval<A>* > input_array(input_list.size());
+		std::vector<interval<A>* > input_array;
 		{	// create a node for each interval and copy the intervals into a vector
-			unsigned int i=0;
-			interval<A>* val;
+			interval<A>* val=NULL;
 			forall(val, input_list) {
 				assert(val!=NULL);
-				input_array[i++] = val;
+				input_array.push_back(val);
 				node node_for_interval = g.new_node();
 				assert(val->represented_by[side] == NULL);
 				val->represented_by[side] = node_for_interval;
@@ -123,15 +105,12 @@ private:
 		stack<interval<A>* > s;
 		for(int i=input_array.size()-1; i>=0; i--) {
 			interval<A>* cur_interval = input_array[i];
-			std::cout << "cur interval " << cur_interval->cont << std::endl;
 			assert(cur_interval!=NULL);
 			while(!s.empty() &&	((side == 1 && s.top()->bounds[side] <= cur_interval->bounds[side]) || (side == 0 && s.top()->bounds[side] >= cur_interval->bounds[side])) ) { // < ?
 				s.pop();
 			}
 
 			if (!s.empty() && ((side == 1 && s.top()->bounds[(side+1)%2] < cur_interval->bounds[side]) || (side == 0 && s.top()->bounds[(side+1)%2] > cur_interval->bounds[side]))) {
-				std::cout << cur_interval->cont << " child of " << s.top()->cont << std::endl;
-				std::cout << "\t" << s.top() -> bounds[side] << " " << cur_interval->bounds[side] << " " << side << std::endl;
 				g.new_edge(cur_interval->represented_by[side], s.top()->represented_by[side]); //top becomes parent
 			}
 
@@ -161,6 +140,7 @@ private:
 				i->represented_by[0] = merged_node;
 			}
 		}
+
 	}
 };
 

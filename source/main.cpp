@@ -32,7 +32,7 @@ void to_file(const ugraph& g, const char* name) {
 
 int main(int argc, char* argv[]) {
 
-	interval<int>* intervals[7];
+	interval<int>* intervals[8];
 	unsigned int b[8][2] = {
 			{0,3},
 			{1,3},
