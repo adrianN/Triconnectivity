@@ -1,5 +1,6 @@
 #include "dfs.hpp"
 #include <cassert>
+#include <iostream>
 
 using namespace leda;
 
@@ -46,6 +47,55 @@ bool is_connected(const ugraph& g) {
         }
     }
 
+    delete[] base;
+    return number_seen==number_of_nodes;
+}
+
+bool dfs_order(const ugraph& g, const node startnode, node ordered[]) {
+    unsigned int number_of_nodes = g.number_of_nodes();
+
+    if (number_of_nodes==0) {
+    	node n;
+    	forall_nodes(n,g) {
+    		number_of_nodes++;
+    	}
+    }
+
+    assert(number_of_nodes>0);
+
+    node* stack = new node[number_of_nodes];
+    const node* base = stack;
+    stack[0] = startnode;
+
+    node_array<bool> visited(g,false);
+    assert(visited[*stack]==false); //Leda seems buggy around here
+    visited[*stack] = true;
+    ordered[0] = *stack;
+
+    unsigned int number_seen=1;
+    unsigned int dfi = 0;
+
+    while(stack>=base) {
+        //pop from stack
+        const node current = *stack;
+        std::cout << dfi << std::endl;
+        ordered[dfi++] = current;
+        stack--;
+        node next_node;
+
+        //push unvisited neighbours
+        forall_adj_nodes(next_node,current) {
+            assert(!g.is_hidden(next_node));
+            if (!visited[next_node]) {
+                stack++;
+                *stack = next_node;
+                visited[next_node] = true;
+                number_seen++;
+            }
+        }
+    }
+    std::cout << "\t" << number_seen<< std::endl;
+    assert(dfi==number_seen);
     delete[] base;
     return number_seen==number_of_nodes;
 }

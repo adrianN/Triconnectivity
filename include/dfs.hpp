@@ -11,5 +11,7 @@
 #include "LEDA/graph/ugraph.h"
 
 bool is_connected(const leda::ugraph&);
+bool dfs_order(const leda::ugraph& g, const leda::node startnode, leda::node ordered[]);
+
 
 #endif /* DFS_HPP_ */

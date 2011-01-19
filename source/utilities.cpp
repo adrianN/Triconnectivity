@@ -1,4 +1,5 @@
 #include "triconnectivity.hpp"
+#include "LEDA/core/slist.h"
 #include <ostream>
 #include <vector>
 #include <memory>
@@ -12,6 +13,8 @@ using std::cout;
 using std::endl;
 
 //#define DETERMINISTIC_GLUE
+
+
 
 void to_dot(const ugraph& g, std::ostream& out) {
 
@@ -98,6 +101,40 @@ istream& operator>>(istream& input, ugraph& graph) {
 	delete[] nodes;
 	input.peek();
 	return input;
+}
+
+node merge_nodes(ugraph& g, slist<node> nodes) {
+	node new_node = g.new_node();
+	slist<node> edge_to;
+	node_array<bool> no_more_edges_to(g,false);
+
+	//collect all edges, ban nodes in the list
+	{	node u;
+		forall(u, nodes) {
+			no_more_edges_to[u] = true;
+			node v;
+			forall_adj_nodes(v,u) {
+				edge_to.append(v);
+			}
+		}
+	}
+
+	{//iterate over edges, add new edges to new_node
+		node v;
+		forall(v,edge_to) {
+			if (no_more_edges_to[v]) continue;
+
+			no_more_edges_to[v] = true;
+			g.new_edge(new_node,v);
+		}
+	}
+
+	{	node v;
+		forall(v,nodes) {
+			g.del_node(v);
+		}
+	}
+	return new_node;
 }
 
 node merge_nodes(ugraph& g, node one, node two) {

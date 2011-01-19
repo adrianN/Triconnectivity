@@ -27,6 +27,10 @@ struct chain {
 		p->children.append(*this);
 	}
 	chain() : parent(NULL), segment(-1), s(NULL), t(NULL),  type(unmarked), is_backedge(true), is_marked(false), in_subdivision(false) {}
+	bool operator==(chain& c) {
+		return number == c.number;
+	}
+
 };
 
 class construction_sequence {
@@ -80,7 +84,7 @@ class schmidt_triconnectivity {
 	node* const node_at; //dfi reverse map
 	node_array<edge> parent;
 	node_array<int> inner_of_chain; // only inner nodes of chains are marked.
-	node_array<slist<chain> > type_3;
+	node_array<slist<chain*>* > type_3;
 	node_array<bool> is_real;
 
 	chain* const chains;
@@ -156,34 +160,35 @@ public:
 
 	certificate* certify() {
 		for(unsigned int i=1; i<(unsigned int)(the_graph.number_of_edges() - the_graph.number_of_nodes() + 2); i++) {
-			const chain current_chain = chains[i];
+			const chain& current_chain = chains[i];
 			assert(in_subdivision(current_chain));
 
 			//Compute children 12
-			slist<chain> children12;
+			slist<chain*> children12;
 			int_set set_children12((the_graph.number_of_edges() - the_graph.number_of_nodes() + 2));
-			for(slist<chain>::item it = current_chain.children.first(); it != NULL; it = current_chain.children.next_item(it)) {
-				const chain child = current_chain.children.contents(it);
-				if (!in_subdivision(child) && (child.type == one || child.type == two_a || child.type == two_b)) {
-					children12.append(child);
-					set_children12.insert(child.number);
+			{	chain* child;
+				forall(child,children12) {
+					if (!in_subdivision(child) && (child->type == one || child->type == two_a || child->type == two_b)) {
+						children12.append(child);
+						set_children12.insert(child->number);
+					}
 				}
 			}
 
 			//compute type3
-			slist<chain> type3;
+			slist<chain*> type3;
 			for(node v = current_chain.t; dfi(v) < dfi(current_chain.s); v = parent_node(v)) { //<=?
-				type3.conc(type_3[v]); //order?
+				type3.conc(*type_3[v]); //order?
 			}
 
 			/* preemptively add chains of type 2a with real t(C). As they are backedges with parent in S they have prop. 30a. As t(C)
 			 * is real and a proper descendant of t(current_chain) (which is real) by definition of type 2 chains, they have property 30b.
 			 */
 			{
-				slist<chain>::item prev_it=NULL;
-				for(slist<chain>::item cur_it = children12.first(); cur_it!=NULL; (prev_it=cur_it, cur_it=children12.next_item(cur_it))){
-					chain cur_child = children12.contents(cur_it);
-					if (cur_child.type == two_a && is_real[cur_child.t]) {
+				slist<chain*>::item prev_it=NULL;
+				for(slist<chain*>::item cur_it = children12.first(); cur_it!=NULL; (prev_it=cur_it, cur_it=children12.next_item(cur_it))){
+					chain* cur_child = children12.contents(cur_it);
+					if (cur_child->type == two_a && is_real[cur_child->t]) {
 						add_to_subdivision(cur_child);
 						if (prev_it!=NULL) {
 							children12.del_succ_item(prev_it);
@@ -197,7 +202,7 @@ public:
 			}
 
 			//Partition type3 into segments
-			h_array<unsigned int, slist<chain> > segments;
+			h_array<unsigned int, slist<chain*> > segments;
 			h_array<unsigned int, bool> intersection_12_free(true);
 
 			{	node_array<int> minimal_chain(the_graph,NULL);
@@ -206,12 +211,10 @@ public:
 						minimal_chain[n] = -1;
 					}
 				}
-
-				for(slist<chain>::item cur_it; cur_it!=NULL; cur_it = type3.next_item(cur_it)) {
-					chain t3_chain = type3.contents(cur_it);
-
+				chain* t3_chain;
+				forall(t3_chain, type3) {
 					//Find the minimal chain
-					node v = t3_chain.t;
+					node v = t3_chain->t;
 					do {
 						v = parent_node(v);
 					} while (!in_subdivision(parent_node(v)) && minimal_chain[v] < 0);
@@ -225,14 +228,14 @@ public:
 
 					//mark all nodes on the path with the minimal chain to get linear running time. Unsure whether we have
 					//to keep the markings between different C_i. Probably not.
-					v = t3_chain.t;
+					v = t3_chain->t;
 					do {
 						minimal_chain[v] = m_chain;
 						v = parent_node(v);
 					} while (!in_subdivision(parent_node(v)) && minimal_chain[v] < 0);
 
-					t3_chain.segment = m_chain;
-					assert(segments[m_chain].contents(segments[m_chain].last()).number < t3_chain.number);
+					t3_chain->segment = m_chain;
+					assert(segments[m_chain].contents(segments[m_chain].last())->number < t3_chain->number);
 					segments[m_chain].append(t3_chain);
 					intersection_12_free[m_chain] &= !set_children12.member(m_chain);
 				}
@@ -240,18 +243,18 @@ public:
 
 			//Add the easy clusters.
 
-			{ 	slist<chain>::item prev_it=NULL;
-				for(slist<chain>::item cur_it = type3.first(); cur_it!=NULL; (prev_it=cur_it, cur_it=type3.next_item(cur_it))){
-					chain t3_chain = type3.contents(cur_it);
-					assert(t3_chain.segment>=0);
+			{ 	slist<chain*>::item prev_it=NULL;
+				for(slist<chain*>::item cur_it = type3.first(); cur_it!=NULL; (prev_it=cur_it, cur_it=type3.next_item(cur_it))){
+					chain* t3_chain = type3.contents(cur_it);
+					assert(t3_chain->segment>=0);
 
-					if (!intersection_12_free(t3_chain.segment)) continue;
+					if (!intersection_12_free[t3_chain->segment]) continue;
 
 					//add all ancestors of t3_chain that are still in H, in order of <
-					stack<chain> ancestors_in_segment;
-					for(chain cur_chain=t3_chain; cur_chain.parent != NULL && cur_chain.number > t3_chain.segment; cur_chain = *cur_chain.parent) {
+					stack<chain*> ancestors_in_segment;
+					for(chain* cur_chain=t3_chain; cur_chain->parent != NULL && cur_chain->number > (unsigned int)t3_chain->segment; cur_chain = cur_chain->parent) {
 						//make sure cur_chain is not a type 3 chain that won't be removed from type3(C_i). I hope this never happens
-						assert(cur_chain==type3_chain || cur_chain.type != three_a || cur_chain.type != three_b || !contained_in_chain(cur_chain.s, current_chain));
+						assert(cur_chain==t3_chain || cur_chain->type != three_a || cur_chain->type != three_b || !contained_in_chain(cur_chain->s, &current_chain));
 
 						ancestors_in_segment.push(cur_chain);
 					}
@@ -287,6 +290,9 @@ public:
 	inline bool in_subdivision(const chain& c) const {
 		return c.in_subdivision;
 	}
+	inline bool in_subdivision(const chain* c) const {
+		return c->in_subdivision;
+	}
 	inline bool in_subdivision(const node n) const {
 		return n == node_at[1] || inner_of_chain[n] >= 0; //every node is the inner node of some chain, except maybe the root. I'm not sure about that TODO
 	}
@@ -303,7 +309,7 @@ public:
 				if (!is_frond[e] || belongs_to_chain[e] >= 0) // the first three chains already exist
 					continue;
 
-				chain current_chain = chains[chain_number];
+				chain& current_chain = chains[chain_number];
 
 				//fronds go from up to down, hence chain.s = source, chain.t = target
 				belongs_to_chain[e] = chain_number;
@@ -317,7 +323,7 @@ public:
 
 				switch (classify_chain(chain_number)) {
 				case three_a: case three_b:
-					type_3[current_chain.s].append(current_chain);
+					type_3[current_chain.s]->append(&current_chain);
 				default: break;
 				}
 
@@ -430,15 +436,15 @@ public:
 		    mark_path(lca, 0);
 
 		    std::cout << "A " << node_a->id() << std::endl;
-		    add_to_subdivision(chains[0]);
+		    add_to_subdivision(&chains[0]);
 
 
 		    mark_path(node_a, 1);
 		    std::cout << "B " << node_b->id() << std::endl;
-		    add_to_subdivision(chains[1]);
+		    add_to_subdivision(&chains[1]);
 
 		    mark_path(node_b, 2);
-		    add_to_subdivision(chains[2]);
+		    add_to_subdivision(&chains[2]);
 		    assert(chains[0].s == chains[2].t);
 
 
@@ -474,7 +480,7 @@ public:
 		}
 	}
 
-	inline bool contained_in_chain(node v, chain* chain) {
+	inline bool contained_in_chain(const node v, const chain* chain) {
 		return (unsigned int)inner_of_chain[v] == chain->number || v == chain->s || v == chain->t;
 	}
 
@@ -631,18 +637,18 @@ public:
 			return found_cycle;
 	}
 
-	void add_to_subdivision(chain& c) {
-		assert(!c.in_subdivision);
-		assert((c.parent == NULL && c.number==0) || c.parent->in_subdivision); //modularity
-		c.in_subdivision = true;
-		is_real[c.s] = true;
-		is_real[c.t] = true;
+	void add_to_subdivision(chain* c) {
+		assert(!c->in_subdivision);
+		assert((c->parent == NULL && c->number==0) || c->parent->in_subdivision); //modularity
+		c->in_subdivision = true;
+		is_real[c->s] = true;
+		is_real[c->t] = true;
 
 #ifndef NDEBUG
-		if (c.number > 1) {
+		if (c->number > 1) {
 		edge e;
 		unsigned int count=0;
-			forall_adj_edges(e,c.s) {
+			forall_adj_edges(e,c->s) {
 				if (chains[belongs_to_chain[e]].in_subdivision) {
 					count++;
 				}
@@ -650,7 +656,7 @@ public:
 			assert(count>=3);
 
 			count=0;
-			forall_adj_edges(e,c.t) {
+			forall_adj_edges(e,c->t) {
 				if (chains[belongs_to_chain[e]].in_subdivision) {
 					count++;
 				}
