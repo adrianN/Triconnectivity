@@ -18,19 +18,30 @@ using namespace std;
 using namespace leda;
 
 
+
+
 template <typename A> class interval{
 public:
 	A cont;
 	unsigned int bounds[2];
 	leda::node represented_by[2];
+	interval(unsigned int l, unsigned int r, A content) : cont(content) {
+		assert(l<r);
+		bounds[0] = l;
+		bounds[1] = r;
+		represented_by[0] = NULL;
+		represented_by[1] = NULL;
+	}
 	interval(unsigned int b[], A content) : cont(content) {
-		std::cout << " create interval " << b[0] << " " << b[1] << " " << content << std::endl;
 		assert(b[0]<b[1]);
 		bounds[0] = b[0];
 		bounds[1] = b[1];
 		represented_by[0] = NULL;
 		represented_by[1] = NULL;
 	}
+
+	static unsigned int first_component(interval<A>* const & i) { return i->bounds[0]; }
+	static unsigned int second_component(interval<A>* const & i) { return i->bounds[1]; }
 };
 
 template<typename A> class Order {
@@ -86,7 +97,6 @@ private:
 		return l;
 	}
 
-	//returns an array with node->interval assocs
 	static void connect_forest(ugraph& g, const slist<interval<A>* >& input_list, unsigned int side) {
 		std::vector<interval<A>* > input_array;
 		{	// create a node for each interval and copy the intervals into a vector
@@ -106,6 +116,7 @@ private:
 		for(int i=input_array.size()-1; i>=0; i--) {
 			interval<A>* cur_interval = input_array[i];
 			assert(cur_interval!=NULL);
+			//fancy conditions to switch between <= and >= for different sides
 			while(!s.empty() &&	((side == 1 && s.top()->bounds[side] <= cur_interval->bounds[side]) || (side == 0 && s.top()->bounds[side] >= cur_interval->bounds[side])) ) { // < ?
 				s.pop();
 			}
