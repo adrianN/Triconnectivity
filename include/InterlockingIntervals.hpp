@@ -50,9 +50,12 @@ public:
 	static bool compute_order(const slist<interval<A>*>& sorted_asc,
 							  const slist<interval<A>*>& sorted_dsc,
 							  const slist<slist<interval<A>*>* >& equivalent_intervals,
-							  interval<A>* start,
+							  const interval<A>* start,
 							  std::vector<interval<A>* >& output)
 	{
+		assert(sorted_asc.size() == sorted_dsc.size());
+		assert(sorted_asc.size() > 0);
+		std::cout << "Computing overlapgraph " << sorted_asc.size() << std::endl;
 		ugraph g;
 		connect_forest(g, sorted_asc, 1);
 

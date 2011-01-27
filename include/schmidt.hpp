@@ -15,6 +15,7 @@
 #include "chain.hpp"
 #include "caterpillar.hpp"
 #include "certificate.hpp"
+#include <vector>
 
 using namespace leda;
 
@@ -31,7 +32,7 @@ class schmidt_triconnectivity {
 	node_array<slist<chain*>* > type_3;
 	node_array<bool> is_real;
 
-	chain* const chains;
+	std::vector<chain*> chains;
 	caterpillar* const caterpillars;
 	slist<const chain* const > construction_sequence;
 	ugraph& the_graph;
@@ -45,11 +46,11 @@ public:
 
 	void preemptively_add_easy_clusters(slist<chain*> children12);
 
-	void partition_into_segments(const chain& current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<chain*> >& segments, h_array<unsigned int, slist<node> >& attachment_vertices, const int_set& set_children12, h_array<unsigned int,bool>& intersection_12_free);
+	void partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<chain*> >& segments, h_array<unsigned int, slist<node> >& attachment_vertices, const int_set& set_children12, h_array<unsigned int,bool>& intersection_12_free);
 
-	void add_easy_segments(const chain& current_chain, slist<chain*>& type3, const h_array<unsigned int, bool>& intersection_12_free);
+	void add_easy_segments(const chain* current_chain, slist<chain*>& type3, const h_array<unsigned int, bool>& intersection_12_free);
 
-	void add_hard_segments(const chain& current_chain, h_array<unsigned int, slist<node> > attachment_vertices);
+	void add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > attachment_vertices);
 
 	inline unsigned int dfi(const node v) const;
 	inline void set_dfi(const node v, const unsigned int d);
@@ -74,13 +75,17 @@ public:
 
 	chain_type classify_chain(const unsigned int chain_number);
 
-	bool find_a_cycle_to_root(node& start_node, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found, const unsigned int current_chain);
+	bool find_a_cycle_to_root(node& start_node, edge& backedge, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found, const unsigned int current_chain);
 
 	void add_to_subdivision(chain* c);
 
    void dfs_tree_to_dot(std::ostream& out);
 
    void chain_tree_to_dot(std::ostream& out);
+
+   void create_chain(edge e, unsigned int chain_number);
+
+   void mark_as_frond(const edge e);
 };
 
 #endif /* SCHMIDT_HPP_ */
