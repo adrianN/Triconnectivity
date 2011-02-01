@@ -27,27 +27,19 @@ leda::slist<unsigned int> bucket_sort(leda::slist<unsigned int> elems, unsigned 
 template<typename A> A identity(const A& a) { return a; }
 
 template <typename A> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
-	A* buckets = new A[end-start+1];
-	bool* filled = new bool[end-start+1];
-
-	for(unsigned int i=0; i<(end-start+1); i++) {
-		filled[i] = false;
-	}
+	leda::slist<A>* buckets = new leda::slist<A>[end-start+1];
 	A elem;
 	forall(elem, elems) {
 		const unsigned int elem_v = to_int(elem);
-		assert(!filled[elem_v]);
-		buckets[elem_v-start] = elem;
+		buckets[elem_v-start].append(elem);
 	}
 
 	leda::slist<A> ret;
 	for(unsigned int i=0; i<(end-start+1); i++) {
-		if (filled[i])
-			ret.append(buckets[start+i]);
+		ret.conc(buckets[start+i]);
 	}
 	delete[] buckets;
-	delete[] filled;
-
+	assert(ret.size() == elems.size());
 	return ret;
 }
 

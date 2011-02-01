@@ -26,7 +26,9 @@ public:
 	unsigned int bounds[2];
 	leda::node represented_by[2];
 	interval(unsigned int l, unsigned int r, A content) : cont(content) {
-		assert(l<r);
+		std::cout << "Fresh interval " << l << " " << r  << std::endl;
+		if (l>r)
+			std::swap(l,r);
 		bounds[0] = l;
 		bounds[1] = r;
 		represented_by[0] = NULL;
@@ -45,7 +47,7 @@ public:
 };
 
 template<typename A> class Order {
-public:
+	public:
 
 	static bool compute_order(const slist<interval<A>*>& sorted_asc,
 							  const slist<interval<A>*>& sorted_dsc,
@@ -55,7 +57,7 @@ public:
 	{
 		assert(sorted_asc.size() == sorted_dsc.size());
 		assert(sorted_asc.size() > 0);
-		std::cout << "Computing overlapgraph " << sorted_asc.size() << std::endl;
+		std::cout << "Computing overlap graph " << sorted_asc.size() << std::endl;
 		ugraph g;
 		connect_forest(g, sorted_asc, 1);
 

@@ -57,7 +57,7 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 		//count cycles in the chain decomposition
 		unsigned int num_cycles = 0;
 		for(unsigned int i = 0; i<number_chains; i++) {
-			if (chains[i]->s == chains[i]->t) {
+			if (chains[i]->get_s() == chains[i]->get_t()) {
 				std::cout << "chain " << i << " forms a cycle" << std::endl;
 				num_cycles++;
 			}
@@ -79,33 +79,54 @@ schmidt_triconnectivity::~schmidt_triconnectivity(void) {
 }
 
 certificate* schmidt_triconnectivity::certify(void) {
-	for(unsigned int i=1; i<(unsigned int)chains.size(); i++) {
+	std::cout << "\nStarting proper certification process" << std::endl;
+	for(unsigned int i=0; i<(unsigned int)chains.size(); i++) {
 		const chain* current_chain = chains[i];
+		std::cout << "Considering the children of chain " << current_chain->number << " (" << current_chain->children.size() << ")"<< std::endl;
 		assert(in_subdivision(current_chain));
 
-		//Compute children 12, the set of all children of type 1 or 1 of current_chain that are not yet added to the subdivision
+		//Compute children 12, the set of all children of type 1 or 2 of current_chain that are not yet added to the subdivision
 		slist<chain*> children12;
 		int_set set_children12(chains.size());
 		{	chain* child;
-			forall(child,children12) {
-				if (!in_subdivision(child) && (child->type == one || child->type == two_a || child->type == two_b)) {
-					children12.append(child);
-					set_children12.insert(child->number);
+			forall(child,current_chain->children) {
+
+				if (!in_subdivision(child)) {
+					switch (child->type) {
+					case two_a:
+						/* preemptively add chains of type 2a with real t(C). As they are backedges with parent in S they have prop. 30a. As t(C)
+						 * is real and a proper descendant of t(current_chain) (which is real) by definition of type 2 chains, they have property 30b.
+						 */
+						if (is_real[child->get_t()]) {
+							add_to_subdivision(child);
+							continue;
+						}
+					case one: case two_b:
+						children12.append(child);
+						set_children12.insert(child->number); // TODO also for 2a that are added to subdivision?
+						break;
+					default: break;
+					}
 				}
 			}
 		}
 
 		//compute type3, the set of chains of type 3 that start at an inner vertex of current_chain
 		slist<chain*> type3;
-		for(node v = current_chain->t; dfi(v) < dfi(current_chain->s); v = parent_node(v)) { //<=?
+		chain_node_iterator it(current_chain,this);
+		for(node v = it.next(); v!=NULL ; v = it.next()) { //<=?
 			if (type_3[v] != NULL)
 				type3.conc(*type_3[v]); //TODO order?
 		}
+		//this can probably be avoided by better traversal
+		type3 = bucket_sort<chain*>(type3,get_number,0,chains.size());
 
-		/* preemptively add chains of type 2a with real t(C). As they are backedges with parent in S they have prop. 30a. As t(C)
-		 * is real and a proper descendant of t(current_chain) (which is real) by definition of type 2 chains, they have property 30b.
-		 */
-		preemptively_add_easy_clusters(children12);
+		{ chain* c; std::cout << "type 3 chains " ;
+			forall(c,type3) {
+				std::cout << c->number << " ";
+			}
+			std::cout << std::endl;
+		}
 
 
 		//Partition type3 into segments. The key is the number of the minimal chain in the segment
@@ -114,43 +135,41 @@ certificate* schmidt_triconnectivity::certify(void) {
 		// The attachment vertices are the end vertices of the minimal chain and of the chains in type3 that are in the segment
 		h_array<unsigned int, slist<node> > attachment_vertices;
 		//true if a segment has no chain in children12
-		h_array<unsigned int, bool> intersection_12_free(true);
+		h_array<unsigned int, bool> intersection_12_free(true); //TODO this is unnecessary, it suffices to check that the minimal chain is not in children12 lemma 80
 
 		partition_into_segments(current_chain, type3, segments, attachment_vertices, set_children12, intersection_12_free);
 
+		{
+			unsigned int min_chain;
+			forall_defined(min_chain,segments) {
+				std::cout << "segment with minchain " << min_chain << std::endl;
+				std::cout << "\teasy? " << intersection_12_free[min_chain] << std::endl;
+				std::cout << "\tcontains: ";
+				chain* c;
+				forall(c,segments[min_chain]) {
+					std::cout << c->number << " ";
+				}
+				std::cout << "\nAttachment vertices ";
+				node n;
+				forall(n,attachment_vertices[min_chain]) {
+					std::cout << dfi(n) << " ";
+				}
+				std::cout << std::endl;
+			}
+		}
 		//Add the easy segments, i.e. those without chains from children12
-		add_easy_segments(current_chain, type3,intersection_12_free);
+		add_easy_segments(current_chain, type3, intersection_12_free);
 
 		// Add the hard clusters
 		// we take the attachment vertices and generate a set of intervals for each segment. Then we compute an order
 		// for the intervals such that we can add the minimal chain (and thus all others in the segment) such that there is at least one real vertex between
 		// the end nodes of the chain.
 
-		add_hard_segments(current_chain, attachment_vertices);
+		add_hard_segments(current_chain, attachment_vertices, children12);
 
 
 	}
 	return NULL;
-}
-
-void schmidt_triconnectivity::preemptively_add_easy_clusters(slist<chain*> children12) {
-	{
-		slist<chain*>::item prev_it=NULL;
-		for(slist<chain*>::item cur_it = children12.first(); cur_it!=NULL; (prev_it=cur_it, cur_it=children12.next_item(cur_it))){
-			chain* cur_child = children12.contents(cur_it);
-			if (cur_child->type == two_a && is_real[cur_child->t]) {
-				add_to_subdivision(cur_child);
-				//delete from list
-				if (prev_it!=NULL) {
-					children12.del_succ_item(prev_it);
-					cur_it=prev_it;
-				} else {
-					children12.pop();
-					//TODO does next_item work as expected? Otherwise switch to doubly linked lists. Otherwise another pass over the list...
-				}
-			}
-		}
-	}
 }
 
 void schmidt_triconnectivity::partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<chain*> >& segments, h_array<unsigned int, slist<node> >& attachment_vertices, const int_set& set_children12, h_array<unsigned int,bool>& intersection_12_free) {
@@ -160,167 +179,225 @@ void schmidt_triconnectivity::partition_into_segments(const chain* current_chain
 				minimal_chain[n] = -1;
 			}
 		}
+		std::cout << "partitioning into segments" << std::endl;
 		chain* t3_chain;
 		forall(t3_chain, type3) {
+			std::cout << "t3chain " << t3_chain->number << std::endl;
 			//Find the minimal chain
-			node v = t3_chain->t;
-			do {
+
+			node v = t3_chain->get_t();
+			while (!in_subdivision(parent_node(v)) && minimal_chain[v] < 0) {
 				v = parent_node(v);
-			} while (!in_subdivision(parent_node(v)) && minimal_chain[v] < 0);
+			};
 
 			if (minimal_chain[v] < 0) {
-				minimal_chain[v] = inner_of_chain[parent_node(v)];
+				minimal_chain[v] = inner_of_chain[v];
 			}
 
 			assert(minimal_chain[v] >= 0);
-			unsigned int m_chain = (unsigned int)minimal_chain[v];
-
-			assert(contained_in_chain(chains[m_chain]->s, current_chain));
-			assert(contained_in_chain(chains[m_chain]->t, current_chain));
+			const unsigned int m_chain = (unsigned int)minimal_chain[v];
+			std::cout << "\tminchain " << m_chain << std::endl;
 
 
-			//mark all nodes on the path with the minimal chain to get linear running time. Unsure whether we have
+			assert(contained_in_chain(chains[m_chain]->get_s(), current_chain));
+			assert(contained_in_chain(chains[m_chain]->get_t(), current_chain));
+
+
+			//mark all nodes on the path to the minimal chain with the minimal chain to get linear running time. Unsure whether we have
 			//to keep the markings between different C_i. Probably not.
-			v = t3_chain->t;
-			do {
+			v = t3_chain->get_t();
+			while (!in_subdivision(parent_node(v)) && minimal_chain[v] < 0) {
 				minimal_chain[v] = m_chain;
 				v = parent_node(v);
-			} while (!in_subdivision(parent_node(v)) && minimal_chain[v] < 0);
+			}
 
 			t3_chain->segment = m_chain;
-			assert(segments[m_chain].contents(segments[m_chain].last())->number < t3_chain->number);
 			if (!segments.defined(m_chain)) {
 				//we add a new segment, put the end vertices of the minimal chain in the set of attachment vertices
-				const chain* min_chain = chains[m_chain];
-				attachment_vertices[m_chain].append(min_chain->s);
-				attachment_vertices[m_chain].append(min_chain->t);
-			}
-			segments[m_chain].append(t3_chain);
-			attachment_vertices[m_chain].append(t3_chain->s);
-			attachment_vertices[m_chain].append(t3_chain->t);
+				std::cout << "New segment" << std::endl;
 
+				const chain* min_chain = chains[m_chain];
+				attachment_vertices[m_chain].append(min_chain->get_s());
+				attachment_vertices[m_chain].append(min_chain->get_t());
+			} else {
+				assert(segments[m_chain].contents(segments[m_chain].last())->number < t3_chain->number && "chains in the segment not ascending");
+			}
+
+			segments[m_chain].append(t3_chain);
+			assert(segments.defined(m_chain));
+			attachment_vertices[m_chain].append(t3_chain->get_s());
+			attachment_vertices[m_chain].append(t3_chain->get_t());
 			intersection_12_free[m_chain] &= !set_children12.member(m_chain);
 		}
 	}
 }
 
 void schmidt_triconnectivity::add_easy_segments(const chain* current_chain, slist<chain*>& type3, const h_array<unsigned int, bool>& intersection_12_free) {
+	std::cout << "Adding easy segments" << std::endl;
+	slist<chain*>::item prev_it=NULL;
+	for(slist<chain*>::item cur_it = type3.first(); cur_it!=NULL; (prev_it=cur_it, cur_it=cur_it == NULL? type3.first() : type3.next_item(cur_it))){
+		chain* t3_chain = type3.contents(cur_it);
+		assert(t3_chain->segment>=0);
+		std::cout << "Considering chain " << t3_chain->number << std::endl;
 
-	{ 	slist<chain*>::item prev_it=NULL;
-		for(slist<chain*>::item cur_it = type3.first(); cur_it!=NULL; (prev_it=cur_it, cur_it=type3.next_item(cur_it))){
-			chain* t3_chain = type3.contents(cur_it);
-			assert(t3_chain->segment>=0);
+		if (!intersection_12_free[t3_chain->segment]) continue;
 
-			if (!intersection_12_free[t3_chain->segment]) continue;
+		//add all ancestors of t3_chain that are still in H, in order of <
+		stack<chain*> ancestors_in_segment;
+		for(chain* cur_chain=t3_chain; cur_chain->get_parent() != NULL && cur_chain->number > (unsigned int)t3_chain->segment; cur_chain = cur_chain->get_parent()) {
 
-			//add all ancestors of t3_chain that are still in H, in order of <
-			stack<chain*> ancestors_in_segment;
-			for(chain* cur_chain=t3_chain; cur_chain->parent != NULL && cur_chain->number > (unsigned int)t3_chain->segment; cur_chain = cur_chain->parent) {
-				//make sure cur_chain is not a type 3 chain that won't be removed from type3(C_i). I hope this never happens
-				assert(cur_chain==t3_chain || cur_chain->type != three_a || cur_chain->type != three_b || !contained_in_chain(cur_chain->s, current_chain));
+			//make sure cur_chain is not a type 3 chain that won't be removed from type3(C_i). I hope this never happens
+			assert(cur_chain==t3_chain || cur_chain->type != three_a || cur_chain->type != three_b || !contained_in_chain(cur_chain->get_s(), current_chain));
 
-				ancestors_in_segment.push(cur_chain);
-			}
+			ancestors_in_segment.push(cur_chain);
+		}
 
-			while(ancestors_in_segment.size()>0) {
-				add_to_subdivision(ancestors_in_segment.pop());
-			}
+		while(ancestors_in_segment.size()>0) {
+			add_to_subdivision(ancestors_in_segment.pop());
+		}
 
-			if (prev_it!=NULL) {
-				type3.del_succ_item(prev_it);
-				cur_it=prev_it;
-			} else {
-				type3.pop();
-				//TODO does next_item work as expected?
-			}
+		if (prev_it!=NULL) {
+			std::cout <<  "Deleting chain\n" << std::endl;
+			type3.del_succ_item(prev_it);
+			cur_it=prev_it;
+		} else {
+			std::cout << "Popping chain\n" << std::endl;
+			type3.pop();
+			cur_it = NULL;
+			//TODO does next_item work as expected?
 		}
 	}
 }
 
-void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > attachment_vertices) {
+void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> >& attachment_vertices, slist<chain*>& children12) {
 	//we start by computing an order of the segments
 	// we map the nodes of the current_chain to ints from 1 to |current_chain|
 	// we add an artificial interval for each real node on the chain
+	std::cout << "Adding hard segments" << std::endl;
+	assert(current_chain->in_subdivision);
 
-	slist<interval<chain* > * > intervals;
-	node_array<unsigned int> mapping(the_graph);
-	std::vector<node> reverse_mapping;
-	reverse_mapping.push_back(NULL); //mapping starts at 1
+	node_array<unsigned int> mapping(the_graph,0);
+	//std::vector<node> reverse_mapping;
+	//reverse_mapping.push_back(NULL); //mapping starts at 1
 	unsigned int vertices_in_chain = 0;
-	interval<chain*>* start_interval = NULL;
-	chain_node_iterator it(current_chain, this);
-	for(node n=it.next(); it.has_next(); n=it.next()) {
-		vertices_in_chain++;
-		mapping[n] = vertices_in_chain;
-		reverse_mapping.push_back(n);
-
-		//create artificial intervals for vertices that are already real
-		if (is_real[n]) {
-			interval<chain*>* val  = new interval<chain*>(0,vertices_in_chain, NULL); // artificial intervals for real vertices start at 0
-			if (start_interval==NULL)
-				start_interval = val;
-			intervals.append(val);
+	{
+		chain_node_iterator it(current_chain, this);
+		//TODO change this to properly compute the dependent path
+		std::cout << "Mapping and artificial intervals\n";
+		for(node n=it.next(); n!=NULL; n=it.next()) {
+			vertices_in_chain++;
+			mapping[n] = vertices_in_chain;
+			std::cout << "map " << dfi(n) << " -> " << vertices_in_chain << std::endl;
+			//reverse_mapping.push_back(n);
+		}
+	}
+	//the endpoints of the dependent path
+	unsigned int min_n = vertices_in_chain+1, max_n = 0;
+	slist<interval<chain* > * > intervals;
+	std::cout << "Intervals for remaining children12" << std::endl;
+	{ chain* c;
+		forall(c,children12) {
+			assert(!c->in_subdivision);
+			std::cout << c->number << std::endl;
+			unsigned int m1,m2;
+			m1 = mapping[c->get_s()];
+			m2 = mapping[c->get_t()];
+			min_n = std::min(min_n,std::min(m1,m2));
+			max_n = std::max(max_n,std::max(m1,m2));
+			intervals.append(new interval<chain*>(m1, m2,c));
 		}
 	}
 
 	//iterate over the attachment vertices of all chains and generate the intervals
 	//we generate one interval from the lowest attachment vertex to all others and one from the highest to all others
+	std::cout << "Intervals for the attachment vertices of type 3 segments \nThere are " << attachment_vertices.size() << " such segments" << std::endl;
 	slist<slist<interval<chain*>* >* > equivalent_intervals;
-	unsigned int m_chain;
-	forall_defined(m_chain, attachment_vertices) {
-		slist<node>& vertices = attachment_vertices[m_chain];
-		slist<unsigned int> mapped_vertices;
-		node n;
-		//TODO this can be simplified by walking in the right direction and avoiding one bucket sort
-		forall(n,vertices) {
-			mapped_vertices.append(mapping[n]);
-		}
+	{	unsigned int m_chain;
+		forall_defined(m_chain, attachment_vertices) {
 
-		{
-			unsigned int (*id)(const unsigned int& a) = (identity<unsigned int>);
-			mapped_vertices = bucket_sort<unsigned int>(mapped_vertices, id, 0, vertices_in_chain);
-		}
+			if (chains[m_chain]->in_subdivision) // this was an easy chain and has already been added.
+				continue;
+			std::cout << "Attachment vertices for " << m_chain << std::endl;
+			slist<node>& vertices = attachment_vertices[m_chain];
+			slist<unsigned int> mapped_vertices;
+			node n;
+			//TODO this can be simplified by walking in the right direction and avoiding one bucket sort and the intermediate list
+			forall(n,vertices) {
+				mapped_vertices.append(mapping[n]);
+			}
 
-		slist<interval<chain*>*>* equivalence_class = new slist<interval<chain*>*>();
-		equivalent_intervals.append(equivalence_class);
+			{
+				unsigned int (*id)(const unsigned int& a) = (identity<unsigned int>);
+				mapped_vertices = bucket_sort<unsigned int>(mapped_vertices, id, 0, vertices_in_chain);
+			}
 
-		//generate the intervals
-		const unsigned int smallest = mapped_vertices.contents(mapped_vertices.first());
-		const unsigned int largest = mapped_vertices.contents(mapped_vertices.last());
-		interval<chain*>* val = new interval<chain*>(smallest,largest,chains[m_chain]);
-		intervals.append(val);
-		equivalence_class->append(val);
+			slist<interval<chain*>*>* equivalence_class = new slist<interval<chain*>*>();
+			equivalent_intervals.append(equivalence_class);
 
-		slist<unsigned int>::item it = mapped_vertices.first();
-		it = mapped_vertices.succ(it);
+			//generate the intervals
+			const unsigned int smallest = mapped_vertices.contents(mapped_vertices.first());
+			const unsigned int largest = mapped_vertices.contents(mapped_vertices.last());
 
-		for(unsigned int i=1; i <= (unsigned int)mapped_vertices.size()-2; i++) {
-			val = new interval<chain*>(smallest, mapped_vertices.contents(it), chains[m_chain]);
-			intervals.append(val);
+			min_n = std::min(min_n,smallest);
+			max_n = std::max(max_n,largest);
 
-			val = new interval<chain*>(mapped_vertices.contents(it), largest, chains[m_chain]);
+			interval<chain*>* val = new interval<chain*>(smallest,largest,chains[m_chain]);
 			intervals.append(val);
 			equivalence_class->append(val);
+
+			slist<unsigned int>::item it = mapped_vertices.first();
+			it = mapped_vertices.succ(it);
+
+			for(unsigned int i=1; i <= (unsigned int)mapped_vertices.size()-2; i++) {
+				val = new interval<chain*>(smallest, mapped_vertices.contents(it), chains[m_chain]);
+				intervals.append(val);
+
+				val = new interval<chain*>(mapped_vertices.contents(it), largest, chains[m_chain]);
+				intervals.append(val);
+				equivalence_class->append(val);
+			}
 		}
 	}
 
-	// sort the intervals
-	{
-		unsigned int (*fc)(interval<chain*>* const &) = &interval<chain*>::first_component;
-		slist<interval<chain*>*> intervals_asc = bucket_sort<interval<chain*>*>(intervals,fc,0,vertices_in_chain);
-		unsigned int (*sc)(interval<chain*>* const &) = &interval<chain*>::second_component;
-		slist<interval<chain*>*> intervals_dsc = bucket_sort<interval<chain*>*>(intervals,sc,0,vertices_in_chain);
+	if (intervals.size() == 0) //no children and no segments
+		goto free_resources; //goto considered useful
 
-	// order the intervals in fancy order and add them
-		std::vector<interval<chain*>*> ordered;
-		bool order_exists = Order<chain*>::compute_order(intervals_asc, intervals_dsc, equivalent_intervals, start_interval, ordered);
-		assert(order_exists); //other graph not triconnected.
+	{	interval<chain*>* start_interval = NULL;
+		//create artificial intervals for vertices on the dependend path that are already real
+		std::cout << "real vertices on the dependent path " << min_n << " " << max_n << std::endl;
+		{ 	chain_node_iterator it(current_chain,this);
+			for(node n = it.next(); n!=NULL; n=it.next()) {
+				if (is_real[n] && mapping[n] >= min_n && mapping[n] <=max_n) {
+					interval<chain*>* val  = new interval<chain*>(0,mapping[n], NULL); // artificial intervals for real vertices start at 0
+					if (start_interval==NULL)
+						start_interval = val;
+					intervals.append(val);
+				}
+			}
+		}
 
-		for(unsigned int i = 0; i< ordered.size(); i++) {
-			add_to_subdivision(ordered[i]->cont);
+
+
+		// sort the intervals
+		{
+			unsigned int (*fc)(interval<chain*>* const &) = &interval<chain*>::first_component;
+			slist<interval<chain*>*> intervals_asc = bucket_sort<interval<chain*>*>(intervals,fc,0,vertices_in_chain);
+			unsigned int (*sc)(interval<chain*>* const &) = &interval<chain*>::second_component;
+			slist<interval<chain*>*> intervals_dsc = bucket_sort<interval<chain*>*>(intervals,sc,0,vertices_in_chain);
+
+		// order the intervals in fancy order and add them
+			std::vector<interval<chain*>*> ordered;
+			bool order_exists = Order<chain*>::compute_order(intervals_asc, intervals_dsc, equivalent_intervals, start_interval, ordered);
+			assert(order_exists); //other graph not triconnected.
+
+			for(unsigned int i = 0; i< ordered.size(); i++) {
+				if (ordered[i]->cont!=NULL) // not an artificial interval
+					add_to_subdivision(ordered[i]->cont);
+			}
 		}
 	}
 	// free resources
+	free_resources:
 	{
 		interval<chain*>* val;
 		forall(val, intervals) {
@@ -335,10 +412,11 @@ void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_ar
 
 }
 
-inline unsigned int schmidt_triconnectivity::dfi(const node v) const {return dfis[v];}
-inline void schmidt_triconnectivity::set_dfi(const node v, const unsigned int d) { assert(dfis[v] == 0); dfis[v] = d; node_at[d] = v;}
+unsigned int schmidt_triconnectivity::dfi(const node v) const {assert(v!=NULL); return dfis[v];}
+void schmidt_triconnectivity::set_dfi(const node v, const unsigned int d) { assert(v!=NULL); assert(dfis[v] == 0); dfis[v] = d; node_at[d] = v;}
 
 node schmidt_triconnectivity::parent_node(const node v) const {
+	assert(v!=NULL);
 	edge e = parent[v];
 	if (e!=NULL) {
 		assert(!is_frond[e]);
@@ -350,16 +428,16 @@ node schmidt_triconnectivity::parent_node(const node v) const {
 	}
 }
 
-inline bool schmidt_triconnectivity::in_subdivision(const chain& c) const {
+bool schmidt_triconnectivity::in_subdivision(const chain& c) const {
 	return c.in_subdivision;
 }
 
-inline bool schmidt_triconnectivity::in_subdivision(const chain* c) const {
+bool schmidt_triconnectivity::in_subdivision(const chain* c) const {
 	return c->in_subdivision;
 }
 
-inline bool schmidt_triconnectivity::in_subdivision(const node n) const {
-	return n == node_at[1] || inner_of_chain[n] >= 0; //every node is the inner node of some chain, except maybe the root. I'm not sure about that TODO
+bool schmidt_triconnectivity::in_subdivision(const node n) const {
+	return dfi(n)==1 || in_subdivision(chains[inner_of_chain[n]]); //every node is the inner node of some chain, except maybe the root. I'm not sure about that TODO
 }
 
 void schmidt_triconnectivity::create_chain(edge e, unsigned int chain_number) {
@@ -372,8 +450,7 @@ void schmidt_triconnectivity::create_chain(edge e, unsigned int chain_number) {
 	std::cout << "edge " << dfi(source(e)) << "->" << dfi(target(e)) << " belongs to " << chain_number << "\n";
 	assert(belongs_to_chain[e]<0);
 	belongs_to_chain[e] = chain_number;
-	assert(current_chain->s == NULL);
-	current_chain->s = source(e);
+	current_chain->set_s(source(e));
 
 	std::cout << "create chain from frond " << dfi(source(e)) << "->" << dfi(target(e)) << std::endl;
 
@@ -381,14 +458,14 @@ void schmidt_triconnectivity::create_chain(edge e, unsigned int chain_number) {
 
 	mark_path(target(e),chain_number); //sets .t
 
-	assert(current_chain->s!=current_chain->t && "graph is not biconnected");
-	assert(dfi(current_chain->s) < dfi(current_chain->t));
+	assert(current_chain->get_s()!=current_chain->get_t() && "graph is not biconnected");
+	assert(dfi(current_chain->get_s()) < dfi(current_chain->get_t()));
 
 	switch (classify_chain(chain_number)) {
 	case three_a: case three_b:
-		if (type_3[current_chain->s]==NULL)
-			type_3[current_chain->s] = new slist<chain*>();
-		type_3[current_chain->s]->append(current_chain);
+		if (type_3[current_chain->get_s()]==NULL)
+			type_3[current_chain->get_s()] = new slist<chain*>();
+		type_3[current_chain->get_s()]->append(current_chain);
 	default: break;
 	}
 }
@@ -408,9 +485,9 @@ void schmidt_triconnectivity::chain_decomposition(void) {
 			create_chain(e,chain_number);
 
 			assert(chains[chain_number]!=NULL);
-			assert(chains[chain_number]->s!=NULL);
-			assert(chains[chain_number]->t!=NULL);
-			assert(dfi(chains[chain_number]->s) <= dfi(chains[chain_number]->t)); // == if not triconnected.
+			assert(chains[chain_number]->get_s()!=NULL);
+			assert(chains[chain_number]->get_t()!=NULL);
+			assert(dfi(chains[chain_number]->get_s()) <= dfi(chains[chain_number]->get_t())); // == if not triconnected.
 			assert(chains[chain_number]->number == chain_number);
 			assert(cur_dfi==0 || chains[chain_number]->first_edge !=NULL);
 
@@ -424,6 +501,10 @@ void schmidt_triconnectivity::chain_decomposition(void) {
 	std::fstream f("./blubb.dot", std::ios::out);
 	dfs_tree_to_dot(f);
 	f.close();
+
+	std::fstream g("./chains.dot", std::ios::out);
+	chain_tree_to_dot(g);
+	g.close();
 
 #ifndef NDEBUG
 	//Chain decompositition partitions edges
@@ -522,12 +603,12 @@ void schmidt_triconnectivity::initial_dfs(void) {
 		chains.push_back(new chain());
 
 
-		chains[0]->parent = NULL;
+		chains[0]->set_parent(NULL);
 		chains[0]->number = 0;
 
 
 		//TODO, do we need these at all? C0 stays unclassified
-		chains[0]->s = lca;
+		chains[0]->set_s(lca);
 		mark_path(lca, 0);
 
 		add_to_subdivision(chains[0]);
@@ -538,18 +619,16 @@ void schmidt_triconnectivity::initial_dfs(void) {
 		add_to_subdivision(chains[1]);
 		add_to_subdivision(chains[2]);
 
-		assert(chains[0]->s == chains[2]->t);
-		assert(chains[1]->s == root);
-		assert(chains[2]->s == root);
-		assert(chains[1]->t == lca);
-		assert(chains[2]->t == lca);
+		assert(chains[0]->get_s() == chains[2]->get_t());
+		assert(chains[0]->get_t() == root);
+		assert(chains[1]->get_s() == root);
+		assert(chains[2]->get_s() == root);
+		assert(chains[1]->get_t() == lca);
+		assert(chains[2]->get_t() == lca);
 
 
 		for(unsigned int i= 0 ; i<3; i++)
 			classify_chain(i);
-
-
-
 }
 
 /* takes the first inner vertex of a chain (except C0?) and walks upwards in the tree until the edge to the parent is contained in another chain
@@ -558,14 +637,15 @@ void schmidt_triconnectivity::mark_path(const node start, const unsigned int the
 	chains[the_chain]->number = the_chain;
 	std::cout << "Chain " << the_chain << "\n\t";
 	node current_node = start;
-	for(edge current_edge = parent[start]; current_edge!=NULL; (current_node = parent_node(current_node), current_edge = parent[current_node])) {
-		chains[the_chain]->t = current_node;
-		std::cout<< " " << dfi(current_node);
+	for(edge current_edge = parent[start]; ; (current_node = parent_node(current_node), current_edge = parent[current_node])) {
 
-		if (belongs_to_chain[current_edge]>=0) {
+		if (current_edge == NULL || belongs_to_chain[current_edge]>=0) {
 			//found an edge that belongs to a different chain, hence this chain ends here.
-			assert((unsigned int)belongs_to_chain[current_edge] < the_chain && "the parent of a chain must be a chain of smaller chain number");
-			chains[the_chain]->parent = chains[belongs_to_chain[current_edge]];
+			assert((the_chain == 0) || ((unsigned int)belongs_to_chain[current_edge] < the_chain && "the parent of a chain must be a chain of smaller chain number"));
+			chains[the_chain]->set_parent(current_edge == NULL ? NULL : chains[belongs_to_chain[current_edge]]);
+			chains[the_chain]->set_t(current_node);
+			assert(inner_of_chain[chains[the_chain]->get_t()]>=0);
+			assert(the_chain == 0 || (unsigned int)inner_of_chain[chains[the_chain]->get_t()] == chains[the_chain]->get_parent()->number);
 			break;
 		}
 
@@ -574,9 +654,9 @@ void schmidt_triconnectivity::mark_path(const node start, const unsigned int the
 		assert(inner_of_chain[current_node] < 0 && "No node is inner node of >1 chains");
 		inner_of_chain[current_node] = the_chain;
 		//must be <0 due to if
-		std::cout << "edge " << dfi(source(current_edge)) << "->" << dfi(target(current_edge)) << " belongs to " << the_chain << "\n";
+		//std::cout << "edge " << dfi(source(current_edge)) << "->" << dfi(target(current_edge)) << " belongs to " << the_chain << "\n";
 
-		assert(belongs_to_chain[current_edge]<0);
+		assert(belongs_to_chain[current_edge]<0 && "No edge belongs to more than one chain");
 		belongs_to_chain[current_edge] = the_chain;
 
 	}
@@ -585,7 +665,7 @@ void schmidt_triconnectivity::mark_path(const node start, const unsigned int the
 }
 
 inline bool schmidt_triconnectivity::contained_in_chain(const node v, const chain* chain) {
-	return (unsigned int)inner_of_chain[v] == chain->number || v == chain->s || v == chain->t;
+	return (unsigned int)inner_of_chain[v] == chain->number || v == chain->get_s() || v == chain->get_t();
 }
 
 chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_number) {
@@ -593,21 +673,21 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 		return unmarked; // first chain stays unmarked
 
 	chain* const the_chain = chains[chain_number];
-	chain* const the_parent = the_chain->parent;
+	chain* const the_parent = the_chain->get_parent();
 
-	assert(contained_in_chain(the_chain->t,the_parent));
+	assert(contained_in_chain(the_chain->get_t(),the_parent));
 
 	// t(the_chain) ->T s(the_chain) is contained in parent
-	if (the_parent->number == 0 || (the_chain->s != the_parent->s && contained_in_chain(the_chain->s, the_parent))) {
+	if (the_parent->number == 0 || (the_chain->get_s() != the_parent->get_s() && contained_in_chain(the_chain->get_s(), the_parent))) {
 #ifndef NDEBUG
 		//walk the path the_chain.t ->T the_chain.s and check if each node is inner_node in parent
 		{
-			node current_node = the_chain->t;
+			node current_node = the_chain->get_t();
 			assert((unsigned int)inner_of_chain[current_node] == the_parent->number);
 			do {
 				current_node = parent_node(current_node);
 				assert(contained_in_chain(current_node,the_parent));
-			} while (current_node != the_chain->s);
+			} while (current_node != the_chain->get_s());
 		}
 #endif
 		the_chain->type = one;
@@ -615,7 +695,7 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 	}
 
 	//the chain starts at the same node as its parent, it is of type 2
-	if (the_chain->s == the_parent->s) {
+	if (the_chain->get_s() == the_parent->get_s()) {
 		assert(the_parent->number != 0);
 
 		// type 2: the_chain = C_0, t(the_chain) is inner vertex of parent
@@ -643,15 +723,17 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 
 			c_jay->is_marked = false;
 			caterpillars[chain_number].append(c_jay);
-			c_jay = c_jay->parent;
+			c_jay = c_jay->get_parent();
 		}
 		return three_b;
 	}
 }
 
+/* do a dfs until an edge back to the root is encountered. if continue_after_found is true, continue anyway. */
 bool schmidt_triconnectivity::find_a_cycle_to_root(node& start_node, edge& backedge, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found, const unsigned int current_chain) {
 		stack<edge> first_cycle;
 
+		/* push all neighbours of the current node */ //TODO is this necessary? Should be enough to push this node
 		node current_node = start_node;
 		{	edge e;
 			forall_adj_edges(e,current_node) {
@@ -742,32 +824,34 @@ bool schmidt_triconnectivity::find_a_cycle_to_root(node& start_node, edge& backe
 }
 
 void schmidt_triconnectivity::add_to_subdivision(chain* c) {
+	assert(c!=NULL);
+	std::cout << "Adding to subdivision " << c->number << std::endl;
 	assert(!c->in_subdivision);
-	assert((c->parent == NULL && c->number==0) || c->parent->in_subdivision); //modularity
+	assert((c->get_parent() == NULL && c->number==0) || c->get_parent()->in_subdivision); //modularity
 	c->in_subdivision = true;
-	is_real[c->s] = true;
-	is_real[c->t] = true;
+	is_real[c->get_s()] = true;
+	is_real[c->get_t()] = true;
 
-#ifndef NDEBUG
+#ifndef NDEBUG //check that s and t really are real, i.e. have >=3 edges in the subdivision
 	if (c->number > 2) {
 	edge e;
 	unsigned int count=0;
-		forall_adj_edges(e,c->s) {
+		forall_adj_edges(e,c->get_s()) {
 			assert(belongs_to_chain[e]>=0 && (unsigned int)belongs_to_chain[e] < chains.size());
 			if (chains[belongs_to_chain[e]]->in_subdivision) {
 				count++;
 			}
 		}
-		assert(count>=3);
+		assert(count>=3 && "node doesn't have enough edges to become real");
 
 		count=0;
-		forall_adj_edges(e,c->t) {
+		forall_adj_edges(e,c->get_t()) {
 			assert(belongs_to_chain[e]>=0 && (unsigned int)belongs_to_chain[e] < chains.size());
 			if (chains[belongs_to_chain[e]]->in_subdivision) {
 				count++;
 			}
 		}
-		assert(count>=3);
+		assert(count>=3 && "node doesn't have enough edges to become real");
 	}
 #endif
 }
@@ -850,8 +934,8 @@ void schmidt_triconnectivity::chain_tree_to_dot(std::ostream& out) {
 #ifdef RECORD_NODES
 	   out << "node" << i << " [shape = record, label =\"{";
 	   out << i << "| {";
-	   out << "s " << (chains[i]->s ? dfi(chains[i]->s) : -1) << "| ";
-	   out << "t " << (chains[i]->t ? dfi(chains[i]->t) : -1)<< "| ";
+	   out << "s " << (chains[i]->get_s() ? dfi(chains[i]->get_s()) : -1) << "| ";
+	   out << "t " << (chains[i]->get_t() ? dfi(chains[i]->get_t()) : -1)<< "| ";
 	   out << "type ";
 	   switch(chains[i]->type) {
 	   case one: out << "1"; break;
@@ -866,8 +950,8 @@ void schmidt_triconnectivity::chain_tree_to_dot(std::ostream& out) {
 	   if (chains[i]->is_marked)
 		   out << " color = red";
 	   out << "]" << std::endl;
-	   if (chains[i]->parent!=NULL)
-		   out << "node" << i << " -- " << "node" << chains[i]->parent->number;
+	   if (chains[i]->get_parent()!=NULL)
+		   out << "node" << i << " -- " << "node" << chains[i]->get_parent()->number;
 	   out << std::endl;
 #else
 	   out << "node" << i << " [label =\"{";
@@ -899,9 +983,6 @@ void schmidt_triconnectivity::chain_tree_to_dot(std::ostream& out) {
 
 bool schmidt_is_triconnected(ugraph& g) {
 	schmidt_triconnectivity t(g);
-	std::fstream f("./blablubb.dot", std::ios::out);
-	t.dfs_tree_to_dot(f);
-	std::fstream f2("./chains.dot", std::ios::out);
-	t.chain_tree_to_dot(f2);
+
 	return true;
 }

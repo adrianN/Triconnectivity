@@ -78,7 +78,6 @@ bool dfs_order(const ugraph& g, const node startnode, node ordered[]) {
     while(stack>=base) {
         //pop from stack
         const node current = *stack;
-        std::cout << dfi << std::endl;
         ordered[dfi++] = current;
         stack--;
         node next_node;
@@ -94,7 +93,6 @@ bool dfs_order(const ugraph& g, const node startnode, node ordered[]) {
             }
         }
     }
-    std::cout << "\t" << number_seen<< std::endl;
     assert(dfi==number_seen);
     delete[] base;
     return number_seen==number_of_nodes;

@@ -16,11 +16,8 @@ private:
 	const chain* the_chain;
 	const schmidt_triconnectivity* decomposition;
 	node current_node;
-	bool done;
 public:
 	chain_node_iterator(const chain* c, const schmidt_triconnectivity* t);
-	bool has_next() const;
-
 	node next();
 };
 

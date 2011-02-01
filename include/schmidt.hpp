@@ -44,20 +44,18 @@ public:
 
 	certificate* certify(void);
 
-	void preemptively_add_easy_clusters(slist<chain*> children12);
-
 	void partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<chain*> >& segments, h_array<unsigned int, slist<node> >& attachment_vertices, const int_set& set_children12, h_array<unsigned int,bool>& intersection_12_free);
 
 	void add_easy_segments(const chain* current_chain, slist<chain*>& type3, const h_array<unsigned int, bool>& intersection_12_free);
 
-	void add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > attachment_vertices);
+	void add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> >& attachment_vertices, slist<chain*>& children12);
 
-	inline unsigned int dfi(const node v) const;
-	inline void set_dfi(const node v, const unsigned int d);
+	unsigned int dfi(const node v) const;
+	void set_dfi(const node v, const unsigned int d);
 	node parent_node(const node v) const;
-	inline bool in_subdivision(const chain& c) const;
-	inline bool in_subdivision(const chain* c) const;
-	inline bool in_subdivision(const node n) const;
+	bool in_subdivision(const chain& c) const;
+	bool in_subdivision(const chain* c) const;
+	bool in_subdivision(const node n) const;
 
 	void chain_decomposition(void);
 
