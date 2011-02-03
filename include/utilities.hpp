@@ -26,7 +26,9 @@ std::auto_ptr< leda::ugraph > triconnected_graph(const unsigned int n);
 leda::slist<unsigned int> bucket_sort(leda::slist<unsigned int> elems, unsigned int start,  unsigned int end);
 template<typename A> A identity(const A& a) { return a; }
 
-template <typename A> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
+enum ord { asc, dsc};
+
+template <typename A, ord o> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
 	leda::slist<A>* buckets = new leda::slist<A>[end-start+1];
 	A elem;
 	forall(elem, elems) {
@@ -35,14 +37,28 @@ template <typename A> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned 
 	}
 
 	leda::slist<A> ret;
-	for(unsigned int i=0; i<(end-start+1); i++) {
-		ret.conc(buckets[start+i]);
+	switch(o) {
+	case asc :
+		for(unsigned int i=0; i<(end-start+1); i++) {
+			ret.conc(buckets[start+i]);
+		}
+		break;
+	case dsc:
+		for(int i=end-start; i>=0; i--) {
+			ret.conc(buckets[start+i]);
+		}
+		break;
 	}
 	delete[] buckets;
 	assert(ret.size() == elems.size());
 	return ret;
 }
 
+
+template <typename A, ord o1, ord o2> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned int (*to_int_first)(const A&), unsigned int (*to_int_second)(const A&), unsigned int start,  unsigned int end) {
+	elems = bucket_sort<A,o2>(elems,to_int_second,start,end);
+	return bucket_sort<A,o1>(elems,to_int_first,start,end);
+}
 
 template <typename A> void to_dot(const leda::ugraph& g, const leda::node_array<A>& labels, std::ostream& out) {
 

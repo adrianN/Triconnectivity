@@ -21,7 +21,6 @@ private:
 	node t;
 public:
 	unsigned int number;
-	int segment;
 	slist<chain*> children;
 
 	chain_type type;
@@ -41,5 +40,6 @@ public:
 };
 
 std::ostream& operator <<(std::ostream& c, const chain_type& t);
+std::ostream& operator <<(std::ostream& c, chain* const& t);
 unsigned int get_number(chain* const & c);
 #endif /* CHAIN_HPP_ */

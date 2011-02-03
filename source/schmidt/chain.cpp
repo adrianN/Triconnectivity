@@ -31,12 +31,21 @@ void chain::set_parent(chain* p) {
 	else
 		assert(number==0);
 }
-chain::chain() : parent(NULL), s(NULL), t(NULL), segment(-1),  type(unmarked), is_backedge(true), is_marked(false), in_subdivision(false) {}
+chain::chain() : parent(NULL), s(NULL), t(NULL), type(unmarked), is_backedge(true), is_marked(false), in_subdivision(false) {}
 bool chain::operator==(chain& c) const {
 	return number == c.number;
 }
 
 unsigned int get_number(chain* const & c) { assert(c!=NULL); return c->number; }
+
+std::ostream& operator <<(std::ostream& c, chain* const& t) {
+	if (t==NULL)
+		c << "null";
+	else
+		c << t->number;
+	return c;
+}
+
 
 std::ostream& operator <<(std::ostream& c, const chain_type& t) {
 	switch(t) {

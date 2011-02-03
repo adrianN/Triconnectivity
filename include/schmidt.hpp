@@ -44,11 +44,12 @@ public:
 
 	certificate* certify(void);
 
-	void partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<chain*> >& segments, h_array<unsigned int, slist<node> >& attachment_vertices, const int_set& set_children12, h_array<unsigned int,bool>& intersection_12_free);
+	void partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12);
+	void add_with_ancestors(chain* a_chain);
+	void add_easy_segments(const chain* current_chain, slist<chain*>& type3, h_array<chain*,unsigned int> const & segment, const int_set& children12);
 
-	void add_easy_segments(const chain* current_chain, slist<chain*>& type3, const h_array<unsigned int, bool>& intersection_12_free);
 
-	void add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> >& attachment_vertices, slist<chain*>& children12);
+	void add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > const & attachment_vertices, h_array<unsigned int, slist<chain*> > const & segment_chains, slist<chain*>& children12);
 
 	unsigned int dfi(const node v) const;
 	void set_dfi(const node v, const unsigned int d);
