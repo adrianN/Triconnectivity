@@ -34,8 +34,8 @@ class schmidt_triconnectivity {
 
 	std::vector<chain*> chains;
 	caterpillar* const caterpillars;
-	slist<const chain* const > construction_sequence;
 	ugraph& the_graph;
+	certificate* cert;
 
 public:
 	schmidt_triconnectivity(ugraph& graph);
@@ -47,6 +47,7 @@ public:
 	void partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12);
 	void add_with_ancestors(chain* a_chain);
 	void add_easy_segments(const chain* current_chain, slist<chain*>& type3, h_array<chain*,unsigned int> const & segment, const int_set& children12);
+	void decompose_to_bg_paths(const chain* a_chain);
 
 
 	void add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > const & attachment_vertices, h_array<unsigned int, slist<chain*> > const & segment_chains, slist<chain*>& children12);

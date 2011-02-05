@@ -156,7 +156,7 @@ private:
 		std::vector<interval<A>*> input_array;
 		{	// create a node for each interval and copy the intervals into a vector
 			interval<A>* val=NULL;
-			std::cout << "intervals: ";
+			//std::cout << "intervals: ";
 			forall(val, input_list) {
 				assert(val!=NULL);
 				std::cout << val << " ";
@@ -176,7 +176,7 @@ private:
 			assert(cur_interval!=NULL);
 			//fancy conditions to switch between <= and >= for different sides
 			while(!s.empty() &&	((side == 1 && s.top()->bounds[1] <= cur_interval->bounds[1]) || (side == 0 && s.top()->bounds[0] >= cur_interval->bounds[0])) ) { // < ?
-				std::cout << "\tpop " << s.pop() <<  " vs " << cur_interval << std::endl;
+				s.pop();
 			}
 
 			//two intervals t, c overlap if (side 0) t.a < c.a < t.b < c.b or (side 1) c.a < t.a < c.b < t.b
@@ -193,10 +193,10 @@ private:
 			const bool s0_tb_le_cb = s.empty() || (side == 0 && s.top()->bounds[1] < cur_interval->bounds[1]); // t.b < c.b
 
 			if (!s.empty() && ((s1_ta_le_cb && s1_ca_le_ta) || ( s0_ca_le_tb && s0_tb_le_cb))) {
-				std::cout << cur_interval << " overlaps " << s.top() << " " << side << std::endl;
+				//std::cout << cur_interval << " overlaps " << s.top() << " " << side << std::endl;
 				g.new_edge(cur_interval->represented_by[side], s.top()->represented_by[side]); //top becomes parent
 			}
-			std::cout << "\tpush " << cur_interval << std::endl;
+			//std::cout << "\tpush " << cur_interval << std::endl;
 			s.push(cur_interval);
 		}
 	}
@@ -212,12 +212,12 @@ private:
 	static void glue_equivalence_classes(ugraph& g, const slist<slist<interval<A>*>* > equivalent_intervals) {
 		slist<interval<A>* >* a_class;
 		forall(a_class,equivalent_intervals) {
-			std::cout << "glueing equivalence class" <<std::endl;
+			//std::cout << "glueing equivalence class" <<std::endl;
 			slist<node> nodes_to_merge;
 			interval<A>* i;
 			forall(i, *a_class) {
 				assert(i->represented_by[1]==NULL);
-				std::cout << "\t" << i->bounds[0] << " " << i->bounds[1] << " " << i->cont << std::endl;
+				//std::cout << "\t" << i->bounds[0] << " " << i->bounds[1] << " " << i->cont << std::endl;
 				nodes_to_merge.append(i->represented_by[0]);
 			}
 			node merged_node = merge_nodes(g, nodes_to_merge);

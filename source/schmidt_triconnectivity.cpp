@@ -19,7 +19,8 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 	type_3(graph),
 	is_real(graph,false),
 	caterpillars(new caterpillar[graph.number_of_edges() - graph.number_of_nodes() +2]), //TODO not space efficient, at most #fronds/2 caterpillars
-	the_graph(graph)
+	the_graph(graph),
+	cert(new certificate(graph))
 {
 	{	edge e;
 		forall_edges(e,the_graph) {
@@ -155,7 +156,7 @@ certificate* schmidt_triconnectivity::certify(void) {
 
 
 	}
-	return NULL;
+	return cert;
 }
 
 void schmidt_triconnectivity::partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12) {
@@ -237,10 +238,12 @@ void schmidt_triconnectivity::add_easy_segments(const chain* current_chain, slis
 	}
 }
 
-void schmidt_triconnectivity::add_with_ancestors(chain* t3_chain) {
+void schmidt_triconnectivity::add_with_ancestors(chain* a_chain) {
+	decompose_to_bg_paths(a_chain);
+
 	//add all ancestors of t3_chain that are still in H, in order of <
 	stack<chain*> ancestors_in_segment;
-	for(chain* cur_chain=t3_chain; cur_chain->get_parent() != NULL && !cur_chain->in_subdivision ; cur_chain = cur_chain->get_parent()) {
+	for(chain* cur_chain=a_chain; cur_chain->get_parent() != NULL && !cur_chain->in_subdivision ; cur_chain = cur_chain->get_parent()) {
 		//assert(cur_chain->number > segment[t3_chain]);
 		ancestors_in_segment.push(cur_chain);
 	}
@@ -249,6 +252,105 @@ void schmidt_triconnectivity::add_with_ancestors(chain* t3_chain) {
 		add_to_subdivision(ancestors_in_segment.pop());
 	}
 }
+
+void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
+	switch(a_chain->type) {
+	case two_b: /* these must be part of caterpillars and get decomposed */ break;
+	case three_b: {
+		caterpillar& p = caterpillars[a_chain->number];
+		assert(p.parent!=NULL);
+
+		std::cout << "caterpillar with parent " << p.parent << std::endl;
+		//test which kind of good caterpillar Ci we have
+		enum caterpillartype {
+			type1, 	//type 1: s(Ci) is on t(Ck) ->T s(Ck)
+					//same as dfi(s(ck)) < dfi(sCi) < dfi(tck)
+			type2	//type 2: there is a real vertex on s(Ci) ->ck s(Ck)
+		} type;
+
+		if (!p.parent->in_subdivision) {
+			std::cout << "caterpillar is not good" << std::endl;
+			assert(false && "graph is not triconnected");
+		} else 	if (dfi(p.parent->get_s()) < dfi(a_chain->get_s()) && dfi(a_chain->get_s()) < dfi(p.parent->get_t())) {
+			std::cout << "this is a type 1 caterpillar" << std::endl;
+			type = type1;
+		} else {
+			chain_node_iterator it(p.parent, this);
+			node n;
+			it.next(); // discard s(ck)
+			for(n = it.next(); !(n == NULL || is_real[n] || n == a_chain->get_s()); n= it.next()) { /* nothing */	}
+			std::cout << "n: " << dfi(n) << " " << is_real[n] << " " << dfi(a_chain->get_s())<< std::endl;
+			if (n == NULL) {
+				std::cout << __LINE__ <<  " a bad caterpillar" << std::endl;
+				assert(false && "graph is not triconnected");
+			}
+			else if (is_real[n]) {
+				type = type2;
+				std::cout << "good caterpillar of type 2" << std::endl;
+			} else {
+				std::cout << __LINE__ <<  " a bad caterpillar" << std::endl;
+				assert(false && "graph is not triconnected");
+			}
+		}
+
+		// fp: Ci + tree path up to first node in parent of caterpillar
+		list<edge> ci; //edges in the chain ci
+		list<edge> tci_y; //tree path from t to y
+		h_array<edge,bool> on_tci_y(false);
+		for(edge e = a_chain->first_edge; !contained_in_chain(source(e),p.parent) || dfi(target(e)) >= dfi(a_chain->get_t()); e = parent[target(e)]) {
+			if (dfi(target(e))>dfi(a_chain->get_t())) { // we're still on ci
+				ci.append(e);
+			} else {
+				tci_y.append(e);
+				on_tci_y[e] = true;
+
+			}
+
+		}
+
+		list<edge> d0; //the parent of ci (not the caterpillar), up to tci
+		{
+			const chain* parent_chain = a_chain->get_parent();
+			for(edge e = parent_chain->first_edge; source(e) == a_chain->get_t(); e = parent[target(e)]) {
+				d0.append(e);
+			}
+		}
+
+
+		switch(type) {
+		case type1:{
+			ci.conc(tci_y, leda::behind);
+			cert->add_bg_path(ci);
+			cert->add_bg_path(d0);
+
+		} break;
+		case type2:{
+			d0.reverse();
+			ci.conc(d0, leda::behind);
+			cert->add_bg_path(ci);
+			cert->add_bg_path(tci_y);
+		}
+		}
+
+		//now it is ok to add the parent chains. They are stored in the caterpillar.
+		p.pop(); //discard the immediate parent of a_chain, it was processed as d0
+		chain* c;
+		forall(c,p) {
+			//we only want the part of the chain until it hits the path from tci->y
+			list<edge> di;
+			for(edge e = c->first_edge; !on_tci_y[e]; e = parent[target(e)]) {
+				di.append(e);
+			}
+			cert->add_bg_path(di);
+		}
+
+
+	} break;
+
+	case one: case two_a: case three_a: case unmarked: cert->add_bg_path(a_chain);
+	}
+}
+
 
 void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > const & attachment_vertices, h_array<unsigned int, slist<chain*> > const & segment_chains, slist<chain*>& children12) {
 	//we start by computing an order of the segments
@@ -383,7 +485,11 @@ void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_ar
 			std::vector<interval<chain*>*> ordered;
 			bool order_exists = Order<chain*>::compute_order(intervals_asc, intervals_dsc, equivalent_intervals, start_interval, ordered);
 			assert(order_exists); //other graph not triconnected.
-
+			std::cout << "order is: ";
+			for(unsigned int i=0; i<ordered.size(); i++) {
+				std::cout << ordered[i]->cont << " ";
+			}
+			std::cout << std::endl;
 			for(unsigned int i = 0; i< ordered.size(); i++) {
 				if (ordered[i]->cont!=NULL) { // not an artificial interval
 					std::cout << ordered[i] << std::endl;
@@ -718,7 +824,7 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 		return three_a;
 	} else {
 		the_chain->type = three_b;
-		caterpillars[chain_number].append(the_chain);
+		//caterpillars[chain_number].append(the_chain);
 		chain* c_jay = the_parent;
 		while(c_jay->is_marked) {
 			assert(c_jay->type = two_b);

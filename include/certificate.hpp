@@ -9,26 +9,24 @@
 #define CERTIFICATE_HPP_
 
 #include "LEDA/graph/ugraph.h"
+#include "LEDA/core/list.h"
 #include "chain.hpp"
-#include "construction_sequence.hpp"
-
+#include <vector>
 using namespace leda;
 
-union cert_data {
-	unsigned int number_of_vertices;
-	two_tuple<node,node>* sep_pair;
-	chain* decomposition;
-	construction_sequence sequence;
-};
 
-struct certificate {
+
+
+class certificate {
 private:
 	ugraph& the_graph;
-	unsigned int connectivity;
-	cert_data* content;
 public:
-	certificate(ugraph& graph, unsigned int k, cert_data* c);
-	bool verify();
+	certificate(ugraph& graph);
+	bool add_bg_path(std::vector<edge> const & edges);
+	bool add_bg_path(list<edge> const & edges);
+
+	bool add_bg_path(const chain * a_chain);
+	bool verify(void) const;
 };
 
 #endif /* CERTIFICATE_HPP_ */
