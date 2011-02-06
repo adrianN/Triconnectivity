@@ -20,7 +20,7 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 	is_real(graph,false),
 	caterpillars(new caterpillar[graph.number_of_edges() - graph.number_of_nodes() +2]), //TODO not space efficient, at most #fronds/2 caterpillars
 	the_graph(graph),
-	cert(new certificate(graph))
+	cert(new certificate(graph,this))
 {
 	{	edge e;
 		forall_edges(e,the_graph) {
@@ -298,7 +298,7 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 		list<edge> tci_y; //tree path from t to y
 		h_array<edge,bool> on_tci_y(false);
 		for(edge e = a_chain->first_edge; !contained_in_chain(source(e),p.parent) || dfi(target(e)) >= dfi(a_chain->get_t()); e = parent[target(e)]) {
-			if (dfi(target(e))>dfi(a_chain->get_t())) { // we're still on ci
+			if (dfi(target(e))>=dfi(a_chain->get_t())) { // we're still on ci
 				ci.append(e);
 			} else {
 				tci_y.append(e);
@@ -311,7 +311,8 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 		list<edge> d0; //the parent of ci (not the caterpillar), up to tci
 		{
 			const chain* parent_chain = a_chain->get_parent();
-			for(edge e = parent_chain->first_edge; source(e) == a_chain->get_t(); e = parent[target(e)]) {
+			for(edge e = parent_chain->first_edge; source(e) != a_chain->get_t(); e = parent[target(e)]) {
+				std::cout << "pc " << dfi(source(e)) << "  " << dfi(target(e)) << std::endl;
 				d0.append(e);
 			}
 		}
@@ -319,15 +320,19 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 
 		switch(type) {
 		case type1:{
+			std::cout << "type 1 caterpillar" << std::endl;
 			ci.conc(tci_y, leda::behind);
 			cert->add_bg_path(ci);
 			cert->add_bg_path(d0);
 
 		} break;
 		case type2:{
-			d0.reverse();
-			ci.conc(d0, leda::behind);
-			cert->add_bg_path(ci);
+			std::cout << "type 2 caterpillar" << std::endl;
+
+			//d0.reverse();
+			ci.reverse();
+			d0.conc(ci, leda::behind);
+			cert->add_bg_path(d0);
 			cert->add_bg_path(tci_y);
 		}
 		}
@@ -713,6 +718,7 @@ void schmidt_triconnectivity::initial_dfs(void) {
 
 		chains[0]->number = 0;
 		chains[0]->set_parent(NULL);
+		chains[0]->first_edge = parent[lca];
 
 
 		//TODO, do we need these at all? C0 stays unclassified
@@ -720,12 +726,15 @@ void schmidt_triconnectivity::initial_dfs(void) {
 		mark_path(lca, 0);
 
 		add_to_subdivision(chains[0]);
+		cert->add_bg_path(chains[0]);
 
 		create_chain(chain1_first_edge,1);
 		create_chain(chain2_first_edge,2);
 
 		add_to_subdivision(chains[1]);
 		add_to_subdivision(chains[2]);
+		cert->add_bg_path(chains[1]);
+		cert->add_bg_path(chains[2]);
 
 		assert(chains[0]->get_s() == chains[2]->get_t());
 		assert(chains[0]->get_t() == root);

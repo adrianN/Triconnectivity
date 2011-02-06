@@ -19,6 +19,8 @@
 
 using namespace leda;
 
+class certificate; //NO IDEA why this is necessary.
+
 class schmidt_triconnectivity {
 
 
@@ -38,6 +40,7 @@ class schmidt_triconnectivity {
 	certificate* cert;
 
 public:
+	friend class chain_edge_iterator;
 	schmidt_triconnectivity(ugraph& graph);
 
 	~schmidt_triconnectivity(void);

@@ -11,18 +11,18 @@
 #include "LEDA/graph/ugraph.h"
 #include "LEDA/core/list.h"
 #include "chain.hpp"
-#include <vector>
+#include "schmidt.hpp"
 using namespace leda;
 
 
-
+class schmidt_triconnectivity; //NO IDEA why this is necessary
 
 class certificate {
 private:
-	ugraph& the_graph;
+	ugraph const & the_graph;
+	const schmidt_triconnectivity* decomposition;
 public:
-	certificate(ugraph& graph);
-	bool add_bg_path(std::vector<edge> const & edges);
+	certificate(ugraph const & graph, const schmidt_triconnectivity* d);
 	bool add_bg_path(list<edge> const & edges);
 
 	bool add_bg_path(const chain * a_chain);
