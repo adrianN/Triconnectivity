@@ -16,7 +16,6 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 	node_at(new node[graph.number_of_nodes()+1]),
 	parent(graph, NULL),
 	inner_of_chain(graph,-1),
-	type_3(graph),
 	is_real(graph,false),
 	caterpillars(new caterpillar[graph.number_of_edges() - graph.number_of_nodes() +2]), //TODO not space efficient, at most #fronds/2 caterpillars
 	the_graph(graph),
@@ -34,9 +33,7 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 		}
 	}
 
-#ifndef NDEBUG
-	for(unsigned int i =0; i<(unsigned int) the_graph.number_of_nodes(); i++) node_at[i]=NULL;
-#endif
+
 	assert(is_connected(the_graph));
 	assert(the_graph.number_of_nodes()>=4);
 	initial_dfs();
@@ -75,22 +72,22 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 schmidt_triconnectivity::~schmidt_triconnectivity(void) {
 	for(unsigned int i=0; i<chains.size(); i++)
 		delete chains[i];
-	delete[] node_at;
 	delete[] caterpillars;
+	delete[] node_at;
 }
 
-certificate* schmidt_triconnectivity::certify(void) {
+auto_ptr<certificate> schmidt_triconnectivity::certify(void) {
 	std::cout << "\nStarting proper certification process" << std::endl;
 	for(unsigned int i=0; i<(unsigned int)chains.size(); i++) {
-		const chain* current_chain = chains[i];
-		std::cout << "Considering the children of chain " << current_chain->number << " (" << current_chain->children.size() << ")"<< std::endl;
+		chain* current_chain = chains[i];
+		std::cout << "Considering the children of chain " << current_chain->number << " (" << current_chain->children12.size() << ")"<< std::endl;
 		assert(in_subdivision(current_chain));
 
 		//Compute children 12, the set of all children of type 1 or 2 of current_chain that are not yet added to the subdivision
 		slist<chain*> children12;
 		int_set set_children12(chains.size());
 		{	chain* child;
-			forall(child,current_chain->children) {
+			forall(child,current_chain->children12) {
 
 				if (!in_subdivision(child)) {
 					switch (child->type) {
@@ -99,7 +96,7 @@ certificate* schmidt_triconnectivity::certify(void) {
 						 * is real and a proper descendant of t(current_chain) (which is real) by definition of type 2 chains, they have property 30b.
 						 */
 						if (is_real[child->get_t()]) {
-							add_to_subdivision(child);
+							add_with_ancestors(child);
 							continue;
 						}
 					case one: case two_b:
@@ -113,14 +110,14 @@ certificate* schmidt_triconnectivity::certify(void) {
 		}
 
 		//compute type3, the set of chains of type 3 that start at an inner vertex of current_chain
-		slist<chain*> type3;
+		slist<chain*>& type3 = current_chain->type3;
 		chain_node_iterator it(current_chain,this);
-		for(node v = it.next(); v!=NULL ; v = it.next()) { //<=?
-			if (type_3[v] != NULL)
-				type3.conc(*type_3[v]); //TODO order?
-		}
-		//this can probably be avoided by better traversal
-		type3 = bucket_sort<chain*,asc>(type3,get_number,0,chains.size());//this is bad, takes linear time! TODO
+//		for(node v = it.next(); v!=NULL ; v = it.next()) { //<=?
+//			if (type_3[v] != NULL)
+//				type3.conc(*type_3[v]); //TODO order?
+//		}
+//		//this can probably be avoided by better traversal
+//		type3 = bucket_sort<chain*,asc>(type3,get_number,0,chains.size());//this is bad, takes linear time! TODO
 
 		{ chain* c; std::cout << "type 3 chains " ;
 			forall(c,type3) {
@@ -316,7 +313,6 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 				d0.append(e);
 			}
 		}
-
 
 		switch(type) {
 		case type1:{
@@ -576,10 +572,12 @@ void schmidt_triconnectivity::create_chain(edge e, unsigned int chain_number) {
 	assert(dfi(current_chain->get_s()) < dfi(current_chain->get_t()));
 
 	switch (classify_chain(chain_number)) {
-	case three_a: case three_b:
-		if (type_3[current_chain->get_s()]==NULL)
-			type_3[current_chain->get_s()] = new slist<chain*>();
-		type_3[current_chain->get_s()]->append(current_chain);
+	case three_a: case three_b: {
+		const node s = current_chain->get_s();
+		chain* chain_at_s = chains[inner_of_chain[s]];
+		chain_at_s->type3.append(current_chain);
+	}
+
 	default: break;
 	}
 }

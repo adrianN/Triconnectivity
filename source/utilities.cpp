@@ -14,7 +14,55 @@ using std::endl;
 
 //#define DETERMINISTIC_GLUE
 
+edge smoothe(ugraph & g, node n) {
+	assert(g.degree(n) == 2);
+	node neighbours[2];
+	{	unsigned int i = 0;
+		edge e;
+		forall_adj_edges(e,n) {
+			neighbours[i++] = opposite(e,n);
+		}
+	}
+	g.del_node(n);
+	return g.new_edge(neighbours[0], neighbours[1]);
+}
 
+//
+int edge_to_int(const node n1, const node n2) {
+	int n = 0;
+	assert(n1->id() < USHRT_MAX);
+	assert(n2->id() < USHRT_MAX);
+	unsigned short id1 = n1->id();
+	unsigned short id2 = n2->id();
+	n = id1;
+	n *= (USHRT_MAX+1);
+	n += id2;
+	return n;
+}
+
+bool graphs_isomorphic(ugraph  & g1, ugraph  & g2, node_array<node> const & map_2_to_1) {
+	edge_array<int> g1_order;
+	edge_array<int> g2_order;
+	{ 	edge e;
+		forall_edges(e,g1) {
+			g1_order[e] = edge_to_int(source(e),target(e));
+		}
+		forall_edges(e,g2) {
+			g2_order[e] = edge_to_int(map_2_to_1[source(e)], map_2_to_1[target(e)]);
+		}
+	}
+	g1.bucket_sort_edges(g1_order);
+	g2.bucket_sort_edges(g2_order);
+	edge e1,e2;
+	e1 = g1.first_edge();
+	e2 = g2.first_edge();
+	while((e1 !=NULL && e2 != NULL) && (source(e1) == map_2_to_1[source(e2)] && target(e1) == map_2_to_1[target(e2)])) {
+		e1 = g1.succ_edge(e1);
+		e2 = g2.succ_edge(e2);
+	}
+
+	return (e1 == NULL && e2 == NULL);
+}
 
 void to_dot(const ugraph& g, std::ostream& out) {
 

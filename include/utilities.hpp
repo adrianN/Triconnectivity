@@ -24,6 +24,8 @@ void glue_graphs(leda::ugraph& one, leda::ugraph& two, leda::node& merge_one, le
 void write_planar_code(leda::ugraph& g, std::ostream& out);
 std::auto_ptr< leda::ugraph > triconnected_graph(const unsigned int n);
 leda::slist<unsigned int> bucket_sort(leda::slist<unsigned int> elems, unsigned int start,  unsigned int end);
+bool graphs_isomorphic(leda::ugraph  & g1, leda::ugraph  & g2, leda::node_array<leda::node> const & map_2_to_1);
+leda::edge smoothe(leda::ugraph& g, leda::node n); //returns the new edge
 template<typename A> A identity(const A& a) { return a; }
 
 enum ord { asc, dsc};

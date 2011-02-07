@@ -27,7 +27,7 @@ void chain::set_parent(chain* p) {
 	assert(parent==NULL);
 	parent = p;
 	if (p!=NULL)
-		p->children.append(this);
+		p->children12.append(this);
 	else
 		assert(number==0);
 }

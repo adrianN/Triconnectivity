@@ -21,7 +21,8 @@ private:
 	node t;
 public:
 	unsigned int number;
-	slist<chain*> children;
+	slist<chain*> children12;
+	slist<chain*> type3;
 
 	chain_type type;
 	edge first_edge; // for traversals of the chain

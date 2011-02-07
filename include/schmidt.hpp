@@ -16,9 +16,10 @@
 #include "caterpillar.hpp"
 #include "certificate.hpp"
 #include <vector>
+#include <memory>
 
 using namespace leda;
-
+using namespace std;
 class certificate; //NO IDEA why this is necessary.
 
 class schmidt_triconnectivity {
@@ -28,16 +29,15 @@ class schmidt_triconnectivity {
 	edge_array<bool> is_frond;
 
 	node_array<unsigned int> dfis;
-	node* const node_at; //dfi reverse map
+	node* node_at;
 	node_array<edge> parent;
 	node_array<int> inner_of_chain; // only inner nodes of chains are marked.
-	node_array<slist<chain*>* > type_3;
 	node_array<bool> is_real;
 
 	std::vector<chain*> chains;
 	caterpillar* const caterpillars;
 	ugraph& the_graph;
-	certificate* cert;
+	auto_ptr<certificate> cert;
 
 public:
 	friend class chain_edge_iterator;
@@ -45,7 +45,7 @@ public:
 
 	~schmidt_triconnectivity(void);
 
-	certificate* certify(void);
+	auto_ptr<certificate> certify(void);
 
 	void partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12);
 	void add_with_ancestors(chain* a_chain);
