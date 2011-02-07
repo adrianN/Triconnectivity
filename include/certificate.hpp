@@ -34,7 +34,7 @@ private:
 public:
 	certificate(ugraph  & graph,  schmidt_triconnectivity* d);
 	~certificate();
-	bool add_bg_path(list<edge> const & edges);
+	bool add_bg_path(list<node> const & edges);
 
 	bool add_bg_path(const chain * a_chain);
 	bool verify(void);

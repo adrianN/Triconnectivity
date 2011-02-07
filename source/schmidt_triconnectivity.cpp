@@ -7,6 +7,23 @@
 
 using namespace leda;
 
+list<node> nodes_on(list<edge> edges) {
+	node last=NULL;
+	list<node> l;
+	edge e;
+	forall(e,edges) {
+		if (last==NULL) {
+			l.append(source(e));
+			l.append(target(e));
+			last = target(e);
+		} else {
+			l.append(opposite(last,e));
+			last = opposite(last,e);
+		}
+	}
+	return l;
+}
+
 #define RECORD_NODES
 
 schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
@@ -318,8 +335,8 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 		case type1:{
 			std::cout << "type 1 caterpillar" << std::endl;
 			ci.conc(tci_y, leda::behind);
-			cert->add_bg_path(ci);
-			cert->add_bg_path(d0);
+			cert->add_bg_path(nodes_on(ci));
+			cert->add_bg_path(nodes_on(d0));
 
 		} break;
 		case type2:{
@@ -328,8 +345,8 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 			//d0.reverse();
 			ci.reverse();
 			d0.conc(ci, leda::behind);
-			cert->add_bg_path(d0);
-			cert->add_bg_path(tci_y);
+			cert->add_bg_path(nodes_on(d0));
+			cert->add_bg_path(nodes_on(tci_y));
 		}
 		}
 
@@ -342,7 +359,7 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 			for(edge e = c->first_edge; !on_tci_y[e]; e = parent[target(e)]) {
 				di.append(e);
 			}
-			cert->add_bg_path(di);
+			cert->add_bg_path(nodes_on(di));
 		}
 
 
