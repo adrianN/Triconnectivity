@@ -82,8 +82,6 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 	}
 	default: break;
 	}
-
-	certify();
 }
 
 schmidt_triconnectivity::~schmidt_triconnectivity(void) {
@@ -1106,6 +1104,7 @@ void schmidt_triconnectivity::chain_tree_to_dot(std::ostream& out) {
 
 bool schmidt_is_triconnected(ugraph& g) {
 	schmidt_triconnectivity t(g);
-
+	auto_ptr<certificate> c = t.certify();
+	c->verify();
 	return true;
 }

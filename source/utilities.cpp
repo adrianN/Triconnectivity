@@ -41,8 +41,8 @@ int edge_to_int(const node n1, const node n2) {
 }
 
 bool graphs_isomorphic(ugraph  & g1, ugraph  & g2, node_array<node> const & map_2_to_1) {
-	edge_array<int> g1_order;
-	edge_array<int> g2_order;
+	edge_array<int> g1_order(g1);
+	edge_array<int> g2_order(g2);
 	{ 	edge e;
 		forall_edges(e,g1) {
 			g1_order[e] = edge_to_int(source(e),target(e));
