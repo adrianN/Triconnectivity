@@ -16,6 +16,8 @@
 void test_separation_pairs(std::istream&);
 /* test 3-conn graphs */
 void plantri_test(std::istream&);
+void plantri_schmidt_test(std::istream&);
+
 
 
 std::auto_ptr<leda::ugraph> sample_graph(void);

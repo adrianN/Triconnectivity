@@ -4,6 +4,7 @@
 
 
 certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
+	still_valid(true),
 	the_graph(graph),
 	decomposition(d),
 	created_by_chain(new_graph,the_graph.number_of_nodes(), -1),
@@ -15,7 +16,9 @@ certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
 certificate::~certificate() {
 }
 
-bool certificate::add_bg_path(list<node> const & nodes) {
+bool certificate::add_bg_path(list<node> const & nodes) throw() {
+	if (!still_valid)
+		return false;
 	std::cout << "\t****** BG PATH: " ;
 	node first_node = NULL;
 	node last_node = NULL;
@@ -53,18 +56,23 @@ bool certificate::add_bg_path(list<node> const & nodes) {
 
 	}
 
-	assert(chains.size() == 1 || prev_created_nodes == 2);
-	assert(first_node != last_node);
+	// paths have only two nodes in common with the rest of the graph
+	still_valid &= chains.size() == 1 || prev_created_nodes == 2;
+
+	// bg paths mustn't form cycles
+	still_valid &= first_node != last_node;
 
 	endvertices.push_back(new pair<node,node>(first_node,last_node));
 
 	std::cout << std::endl;
 
+	if (!still_valid)
+		std::cout << "\t\t******the above chain is not valid******" <<std::endl;
 
-	return true;
+	return still_valid;
 }
 
-bool certificate::add_bg_path(const chain * c) {
+bool certificate::add_bg_path(const chain * c) throw() {
 	list<node> l;
 	chain_node_iterator it(c, decomposition);
 
@@ -76,13 +84,14 @@ bool certificate::add_bg_path(const chain * c) {
 	return true;
 }
 
-bool certificate::verify() {
+bool certificate::verify() throw() {
+	if (!still_valid)
+		return false;
 	if (!graphs_isomorphic(the_graph, new_graph, new_2_orig)) {
+		std::cout << "resulting graphs not isomorphic";
 		return false;
 	}
 	for(int i = chains.size()-1; i>=0; i--) {
-		assert(chains[i]->size() == 1); // there is one edge left in this chain.
-		const edge to_be_deleted = chains[i]->head();
 
 		const node a = endvertices[i]->first;
 		const node b = endvertices[i]->second;
@@ -119,7 +128,8 @@ bool certificate::verify() {
 				std::swap(b_neighbours[0], b_neighbours[1]);
 			}
 			if (a_neighbours[0] == b_neighbours[0] && a_neighbours[1] == b_neighbours[1]) {
-				assert(false && "chain between parallel links");
+				std::cout << "chain between parallel links"<< std::endl;
+				return false; //chain between parallel links
 			}
 			// update le_edges and the chains
 			//first remove the smoothened edges from the chains
@@ -173,7 +183,8 @@ bool certificate::verify() {
 				}
 			}
 			if (neighbours[0] == third || neighbours[1] == third) {
-				assert(false && "third node is one of the endpoints");
+				std::cout << "third node is one of the endpoints " << std::endl;
+				return false; //third node is one of the endpoints
 			}
 
 			//update le_edges and the chains
@@ -202,15 +213,17 @@ bool certificate::verify() {
 			assert(false);
 		}
 
-		// delete the chain
-		delete(le_edges[to_be_deleted]);
-		le_edges[to_be_deleted] = NULL;
+		{	edge to_be_deleted;
+			forall(to_be_deleted, *chains[i]) {
+				// delete the chain
+				delete(le_edges[to_be_deleted]);
+				le_edges[to_be_deleted] = NULL;
 
-		new_graph.del_edge(to_be_deleted);
-
-		delete(chains[i]);
-		chains[i] = NULL;
-
+				new_graph.del_edge(to_be_deleted);
+			}
+			delete(chains[i]);
+			chains[i] = NULL;
+		}
 	}
 
 	return true;

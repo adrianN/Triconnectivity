@@ -42,6 +42,5 @@ void interval_test() {
 
 	interval<int>* start = intervals[0];
 	std::vector<interval<int>*> out;
-	bool res = Order<int>::compute_order(asc,dsc,equiv,start,out);
-	std::cout <<  res << std::endl;
+	Order<int>::compute_order(asc,dsc,equiv,start,out);
 }

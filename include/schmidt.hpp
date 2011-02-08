@@ -15,12 +15,15 @@
 #include "chain.hpp"
 #include "caterpillar.hpp"
 #include "certificate.hpp"
+#include "not_triconnected_exception.hpp"
 #include <vector>
 #include <memory>
 
 using namespace leda;
 using namespace std;
 class certificate; //NO IDEA why this is necessary.
+
+
 
 class schmidt_triconnectivity {
 
@@ -41,7 +44,7 @@ class schmidt_triconnectivity {
 
 public:
 	friend class chain_edge_iterator;
-	schmidt_triconnectivity(ugraph& graph);
+	schmidt_triconnectivity(ugraph& graph) throw(not_triconnected_exception);
 
 	~schmidt_triconnectivity(void);
 
@@ -53,7 +56,12 @@ public:
 	void decompose_to_bg_paths(const chain* a_chain);
 
 
-	void add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > const & attachment_vertices, h_array<unsigned int, slist<chain*> > const & segment_chains, slist<chain*>& children12);
+	void add_hard_segments(
+			const chain* current_chain,
+			h_array<unsigned int,
+			slist<node> > const & attachment_vertices,
+			h_array<unsigned int, slist<chain*> > const & segment_chains,
+			slist<chain*>& children12) throw(not_triconnected_exception);
 
 	unsigned int dfi(const node v) const;
 	void set_dfi(const node v, const unsigned int d);

@@ -31,7 +31,6 @@ void to_file(const ugraph& g, const char* name) {
 
 
 int main(int argc, char* argv[]) {
-	auto_ptr<ugraph> testgraph = schmidt_sample_graph();
-	schmidt_is_triconnected(*testgraph);
+	plantri_schmidt_test(cin);
     return 0;
 }

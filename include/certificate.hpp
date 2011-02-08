@@ -21,6 +21,7 @@ class schmidt_triconnectivity; //NO IDEA why this is necessary
 
 class certificate {
 private:
+	bool still_valid;
 	ugraph & the_graph;
 	ugraph new_graph;
 	schmidt_triconnectivity* decomposition;
@@ -34,10 +35,10 @@ private:
 public:
 	certificate(ugraph  & graph,  schmidt_triconnectivity* d);
 	~certificate();
-	bool add_bg_path(list<node> const & edges);
+	bool add_bg_path(list<node> const & edges) throw();
 
-	bool add_bg_path(const chain * a_chain);
-	bool verify(void);
+	bool add_bg_path(const chain * a_chain) throw();
+	bool verify(void) throw();
 };
 
 #endif /* CERTIFICATE_HPP_ */

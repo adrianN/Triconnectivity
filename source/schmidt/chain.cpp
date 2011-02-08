@@ -25,11 +25,12 @@ chain* chain::get_parent(void) const {
 
 void chain::set_parent(chain* p) {
 	assert(parent==NULL);
+	std::cout << "Parent of chain " << number << " is now " << ((p == NULL) ? -1 : p->number) << std::endl;
 	parent = p;
-	if (p!=NULL)
-		p->children12.append(this);
-	else
-		assert(number==0);
+	if (parent!=NULL)
+		parent->children12.append(this);
+
+	assert(parent != NULL || number==0);
 }
 chain::chain() : parent(NULL), s(NULL), t(NULL), type(unmarked), first_edge(NULL), is_backedge(true), is_marked(false), in_subdivision(false) {}
 bool chain::operator==(chain& c) const {

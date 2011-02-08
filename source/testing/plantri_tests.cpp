@@ -42,6 +42,40 @@ void plantri_test(std::istream& cin) {
     cout << graph_number << endl;
 }
 
+void plantri_schmidt_test(std::istream& cin) {
+    ugraph g;
+    unsigned int graph_number = 0;
+    while(!cin.eof()) {
+
+    	graph_number++;
+    	cin >> g;
+    	if (!schmidt_is_triconnected(g)) {
+    		cout << "drama "<< graph_number << endl;
+			std::ostringstream s;
+			s << "./sep_pair_graph" << graph_number << ".dot";
+			{	std::fstream dot(s.str().c_str(), std::ios::out);
+				simple_to_dot(g,dot);
+				dot.close();
+			}
+			s.seekp((long)s.tellp()-4);
+			s << ".tri";
+			{	std::fstream tri(s.str().c_str(),std::ios::out);
+				write_planar_code(g,tri);
+				tri.close();
+			}
+			//exit(-1);
+    	}
+    	if (graph_number % 10000 == 0)
+    		cout << '.';
+    	if (graph_number % 100000 == 0)
+    		cout << '\n';
+    	assert(g.number_of_nodes() > 0);
+    }
+
+    cout << graph_number << endl;
+}
+
+
 void test_separation_pairs(std::istream& cin) {
 
     ugraph one,two;

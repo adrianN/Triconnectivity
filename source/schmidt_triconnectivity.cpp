@@ -4,6 +4,8 @@
 #include "chain_node_iterator.hpp"
 #include "LEDA/core/stack.h"
 #include "LEDA/graph/ugraph.h"
+#define RECORD_NODES
+
 
 using namespace leda;
 
@@ -24,9 +26,11 @@ list<node> nodes_on(list<edge> edges) {
 	return l;
 }
 
-#define RECORD_NODES
 
-schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
+
+
+
+schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph)  throw(not_triconnected_exception) :
 	belongs_to_chain(graph,-1),
 	is_frond(graph, false),
 	dfis(graph,0),
@@ -38,26 +42,28 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 	the_graph(graph),
 	cert(new certificate(graph,this))
 {
-	{	edge e;
-		forall_edges(e,the_graph) {
-			belongs_to_chain[e] = -1; //leda bugfix
-		}
-	}
-	{ 	node n; //leda bugfix
-		forall_nodes(n,the_graph) {
-			inner_of_chain[n] = -1;
-			is_real[n] = false;
-		}
-	}
+//	{	edge e;
+//		forall_edges(e,the_graph) {
+//			belongs_to_chain[e] = -1; //leda bugfix
+//		}
+//	}
+//	{ 	node n; //leda bugfix
+//		forall_nodes(n,the_graph) {
+//			inner_of_chain[n] = -1;
+//			is_real[n] = false;
+//		}
+//	}
 
+	if (!is_connected(the_graph))
+		throw not_triconnected_exception();
+	if (the_graph.number_of_nodes()<4)
+		throw not_triconnected_exception();
 
-	assert(is_connected(the_graph));
-	assert(the_graph.number_of_nodes()>=4);
 	initial_dfs();
 	chain_decomposition();
 
 	//Assert property A TODO handle without asserts
-	const unsigned int number_chains = chains.size();
+	//const unsigned int number_chains = chains.size();
 	node min_degree_vertex = the_graph.first_node();
 	{	node n;
 		forall_nodes(n,the_graph) {
@@ -66,20 +72,24 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph) :
 		}
 	}
 	switch (the_graph.degree(min_degree_vertex)) {
-	case 1: assert(false && "not biconnected"); break;
-	case 2: assert(false && "not triconnected"); break;
-	case 3: {
-		//count cycles in the chain decomposition
-		unsigned int num_cycles = 0;
-		for(unsigned int i = 0; i<number_chains; i++) {
-			if (chains[i]->get_s() == chains[i]->get_t()) {
-				std::cout << "chain " << i << " forms a cycle" << std::endl;
-				num_cycles++;
-			}
-		}
-		assert(num_cycles==0 && "not biconnected"); //should already happen during the decomposition. Not 1 as in thesis, cause C0
-		break;
-	}
+	case 1: throw not_triconnected_exception(opposite(the_graph.first_adj_edge(min_degree_vertex), min_degree_vertex)); break;
+	case 2: {
+		node a = opposite(the_graph.first_adj_edge(min_degree_vertex), min_degree_vertex);
+		node b = opposite(the_graph.last_adj_edge(min_degree_vertex), min_degree_vertex);
+		throw not_triconnected_exception(std::pair<node,node>(a,b));
+	}break;
+//	case 3: {
+//		//check for cycles in the chain decomposition
+//		unsigned int num_cycles = 0;
+//		for(unsigned int i = 0; i<number_chains; i++) {
+//			if (chains[i]->get_s() == chains[i]->get_t()) {
+//				std::cout << "chain " << i << " forms a cycle" << std::endl;
+//				num_cycles++;
+//			}
+//		}
+//		assert(num_cycles==0 && "not biconnected"); //should already happen during the decomposition. Not 1 as in thesis, cause C0
+//		break;
+//	}
 	default: break;
 	}
 }
@@ -368,7 +378,11 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 }
 
 
-void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_array<unsigned int, slist<node> > const & attachment_vertices, h_array<unsigned int, slist<chain*> > const & segment_chains, slist<chain*>& children12) {
+void schmidt_triconnectivity::add_hard_segments(
+		const chain* current_chain,
+		h_array<unsigned int, slist<node> > const & attachment_vertices,
+		h_array<unsigned int, slist<chain*> > const & segment_chains,
+		slist<chain*>& children12) throw(not_triconnected_exception) {
 	//we start by computing an order of the segments
 	// we map the nodes of the current_chain to ints from 1 to |current_chain|
 	// we add an artificial interval for each real node on the chain
@@ -499,8 +513,22 @@ void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_ar
 
 		// order the intervals in fancy order and add them
 			std::vector<interval<chain*>*> ordered;
-			bool order_exists = Order<chain*>::compute_order(intervals_asc, intervals_dsc, equivalent_intervals, start_interval, ordered);
-			assert(order_exists); //other graph not triconnected.
+			try {
+				Order<chain*>::compute_order(intervals_asc, intervals_dsc, equivalent_intervals, start_interval, ordered);
+			} catch (not_triconnected_exception ex) {
+				// free resources
+				{
+					interval<chain*>* val;
+					forall(val, intervals) {
+						delete val;
+					}
+					slist<interval<chain*>*>* equivalence_class;
+					forall(equivalence_class, equivalent_intervals) {
+						delete equivalence_class;
+					}
+				}
+				throw ex;
+			}
 			std::cout << "order is: ";
 			for(unsigned int i=0; i<ordered.size(); i++) {
 				std::cout << ordered[i]->cont << " ";
@@ -512,7 +540,7 @@ void schmidt_triconnectivity::add_hard_segments(const chain* current_chain, h_ar
 
 					add_with_ancestors(ordered[i]->cont);
 					if (segment_chains.defined(ordered[i]->cont->number)) {
-						chain* chain_in_segment;
+						chain* chain_in_segment = NULL;
 						forall(chain_in_segment,segment_chains[ordered[i]->cont->number]) {
 							add_with_ancestors(chain_in_segment);
 						}
@@ -955,7 +983,7 @@ bool schmidt_triconnectivity::find_a_cycle_to_root(node& start_node, edge& backe
 
 void schmidt_triconnectivity::add_to_subdivision(chain* c) {
 	assert(c!=NULL);
-	std::cout << "Adding to subdivision " << c->number << std::endl;
+	std::cout << "Adding to subdivision " << c->number << " " << c->get_parent()   <<  std::endl;
 	assert(!c->in_subdivision);
 	assert((c->get_parent() == NULL && c->number==0) || c->get_parent()->in_subdivision); //modularity
 	c->in_subdivision = true;
@@ -1105,6 +1133,6 @@ void schmidt_triconnectivity::chain_tree_to_dot(std::ostream& out) {
 bool schmidt_is_triconnected(ugraph& g) {
 	schmidt_triconnectivity t(g);
 	auto_ptr<certificate> c = t.certify();
-	c->verify();
+	assert(c->verify());
 	return true;
 }

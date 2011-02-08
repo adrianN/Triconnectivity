@@ -14,6 +14,7 @@
 #include "dfs.hpp"
 #include "utilities.hpp"
 #include "chain.hpp"
+#include "not_triconnected_exception.hpp"
 #include <vector>
 #include <string>
 #include <fstream>
@@ -61,12 +62,13 @@ template<typename A> class Order {
 
 	public:
 
-	static bool compute_order(const slist<interval<A>*>& sorted_asc,
+	static void compute_order(const slist<interval<A>*>& sorted_asc,
 							  const slist<interval<A>*>& sorted_dsc,
 							  const slist<slist<interval<A>*>* >& equivalent_intervals,
 							  const interval<A>* start,
-							  std::vector<interval<A>* >& output)
-	{static unsigned char b='0';
+							  std::vector<interval<A>* >& output) throw(not_triconnected_exception)
+	{
+		static unsigned char b='0';
 		assert(sorted_asc.size() == sorted_dsc.size());
 		assert(sorted_asc.size() > 0);
 		std::cout << "Computing overlap graph " << sorted_asc.size() << std::endl;
@@ -120,7 +122,7 @@ template<typename A> class Order {
 		bool is_connected = dfs_order(g, startnode, ordered);
 		if (!is_connected) {
 			delete[] ordered;
-			return false;
+			throw not_triconnected_exception(pair<node,node>(NULL,NULL)); // TODO compute separation pair
 		}
 
 		node_array<interval<A>*> belongs_to(g, NULL);
@@ -136,7 +138,6 @@ template<typename A> class Order {
 			output.push_back(belongs_to[ordered[i]]);
 		}
 		delete[] ordered;
-		return true;
 	}
 
 private:
