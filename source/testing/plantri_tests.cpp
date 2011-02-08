@@ -48,6 +48,7 @@ void plantri_schmidt_test(std::istream& cin) {
     while(!cin.eof()) {
 
     	graph_number++;
+    	std::cout << "*************************************\n*             Graph number " << graph_number << "\n*******************************" << std::endl;
     	cin >> g;
     	if (!schmidt_is_triconnected(g)) {
     		cout << "drama "<< graph_number << endl;

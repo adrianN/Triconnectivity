@@ -122,7 +122,8 @@ template<typename A> class Order {
 		bool is_connected = dfs_order(g, startnode, ordered);
 		if (!is_connected) {
 			delete[] ordered;
-			throw not_triconnected_exception(pair<node,node>(NULL,NULL)); // TODO compute separation pair
+			std::cout << "the interlock graph is not connected: " << (char)(b-1) << std::endl;
+			throw not_triconnected_exception("the interlock graph is not connected "+(b-1), pair<node,node>(NULL,NULL)); // TODO compute separation pair
 		}
 
 		node_array<interval<A>*> belongs_to(g, NULL);

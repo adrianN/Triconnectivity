@@ -14,9 +14,9 @@ using namespace leda;
 
 class not_triconnected_exception {
 public:
-	not_triconnected_exception();
-	not_triconnected_exception(node art_point);
-	not_triconnected_exception(std::pair<node,node> sep_pair);
+	not_triconnected_exception(string s);
+	not_triconnected_exception(string s,node art_point);
+	not_triconnected_exception(string s,std::pair<node,node> sep_pair);
 	unsigned int connectivity;
 	union {
 		node articulation_point;

@@ -31,6 +31,8 @@ void to_file(const ugraph& g, const char* name) {
 
 
 int main(int argc, char* argv[]) {
-	plantri_schmidt_test(cin);
+	fstream f("./9.txt", std::ios::in);
+
+	plantri_schmidt_test(f);
     return 0;
 }
