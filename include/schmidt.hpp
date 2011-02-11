@@ -45,7 +45,8 @@ class schmidt_triconnectivity {
 
 public:
 	friend class chain_edge_iterator;
-	schmidt_triconnectivity(ugraph& graph) throw(not_triconnected_exception);
+//	schmidt_triconnectivity(ugraph& graph) throw(not_triconnected_exception);
+	schmidt_triconnectivity(ugraph& graph, node startnode) throw(not_triconnected_exception);
 
 	~schmidt_triconnectivity(void);
 
@@ -77,7 +78,7 @@ public:
 	 * * calculate DFIs for each vertex
 	 * * finding an initial K32 subdivision
 	 */
-	void initial_dfs(void);
+	void initial_dfs(node startnode);
 
 	/* takes the first inner vertex of a chain (except C0?) and walks upwards in the tree until the edge to the parent is contained in another chain
 	 * Marks edges on the path as belonging to the current chain. Marks inner nodes as inner nodes of the chain. Sets chain.t */

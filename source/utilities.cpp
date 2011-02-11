@@ -15,6 +15,8 @@ using std::endl;
 #define DETERMINISTIC_GLUE
 
 edge smoothe(ugraph & g, node n) {
+	std::cout << "smoothe" << std::endl;
+	int numedges = g.number_of_edges();
 	assert(g.degree(n) == 2);
 	node neighbours[2];
 	{	unsigned int i = 0;
@@ -24,7 +26,9 @@ edge smoothe(ugraph & g, node n) {
 		}
 	}
 	g.del_node(n);
-	return g.new_edge(neighbours[0], neighbours[1]);
+	edge e = g.new_edge(neighbours[0], neighbours[1]);
+	assert(g.number_of_edges() == numedges-1);
+	return e;
 }
 
 //
@@ -227,12 +231,14 @@ node merge_nodes(ugraph& g, node one, node two) {
 
 	forall_adj_edges(e,min) {
 		node opp = opposite(e,min);
-		if (!edge_to[opp]) {
-			g.move_edge(e,max,opp);
+		if (!edge_to[opp] && max != opp) {
+			g.new_edge(max,opp);
+			//g.move_edge(e,max,opp);
 			edge_to[opp] =true;
 		}
 	}
-	g.hide_node(min);
+	g.del_node(min);
+
 	return max;
 //	node new_node = g.new_node();
 //	node_array<bool> edge_to(g,false);

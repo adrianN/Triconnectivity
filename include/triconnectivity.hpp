@@ -21,7 +21,7 @@ bool hopcroft_tarjan_is_triconnected(const leda::ugraph&);
 bool hopcroft_tarjan_is_triconnected(const leda::ugraph&, leda::node& s1, leda::node& s2);
 bool hopcroft_tarjan_is_triconnected_nc(leda::ugraph&, leda::node& s1, leda::node& s2);
 
-bool schmidt_is_triconnected(leda::ugraph&,leda::node& s1, leda::node& s2);
+bool schmidt_is_triconnected(leda::ugraph&,leda::node& s1, leda::node& s2, leda::node startnode = NULL);
 
 void test(leda::ugraph&);
 

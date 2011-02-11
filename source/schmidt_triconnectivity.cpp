@@ -6,7 +6,7 @@
 #include "LEDA/graph/ugraph.h"
 #define RECORD_NODES
 
-//#define COUT
+#define COUT
 
 using namespace leda;
 
@@ -40,7 +40,7 @@ void degree_three_or_more(const ugraph& g, node v) throw(not_triconnected_except
 	}
 }
 
-schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph)  throw(not_triconnected_exception) :
+schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph, node startnode = NULL)  throw(not_triconnected_exception) :
 	belongs_to_chain(graph,-1),
 	is_frond(graph, false),
 	dfis(graph,0),
@@ -70,16 +70,16 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph)  throw(not_trico
 	if (the_graph.number_of_nodes()<4)
 		throw not_triconnected_exception("graph has less than four nodes");
 
-	initial_dfs();
+	initial_dfs(startnode);
 	chain_decomposition();
-//	{
-//		fstream f("chains.dot",std::ios::out);
-//		chain_tree_to_dot(f);
-//	}
-//	{
-//		fstream f("graph.dot",std::ios::out);
-//		dfs_tree_to_dot(f);
-//	}
+	{
+		fstream f("chains.dot",std::ios::out);
+		chain_tree_to_dot(f);
+	}
+	{
+		fstream f("graph.dot",std::ios::out);
+		dfs_tree_to_dot(f);
+	}
 
 	node min_degree_vertex = the_graph.first_node();
 	{	node n;
@@ -578,6 +578,8 @@ void schmidt_triconnectivity::add_hard_segments(
 
 				node a = reverse_mapping[ex.first];
 				node b = reverse_mapping[ex.second];
+				assert(a!=NULL);
+				assert(b!=NULL);
 
 				// free resources
 				{
@@ -744,8 +746,14 @@ void schmidt_triconnectivity::chain_decomposition(void) {
  * * calculate DFIs for each vertex
  * * finding an initial K32 subdivision
  */
-void schmidt_triconnectivity::initial_dfs(void) {
-		node current_node = source(the_graph.first_edge());
+void schmidt_triconnectivity::initial_dfs(node startnode) {
+
+		node current_node;
+		if (startnode ==NULL) {
+			current_node= source(the_graph.first_edge());
+		} else {
+			current_node = startnode;
+		}
 		const node root = current_node;
 		inner_of_chain[root] = 0; //TODO is this so?
 		degree_three_or_more(the_graph,root);
@@ -1214,21 +1222,36 @@ void schmidt_triconnectivity::chain_tree_to_dot(std::ostream& out) {
 }
 
 
-bool schmidt_is_triconnected(ugraph& g, node & s1, node& s2) {
+bool schmidt_is_triconnected(ugraph& g, node & s1, node& s2, node startnode = NULL) {
+	auto_ptr<certificate> c;
+	assert(s1==NULL);
+	assert(s2==NULL);
 	try {
-		schmidt_triconnectivity t(g);
-		auto_ptr<certificate> c = t.certify();
-		assert(c->verify());
+		schmidt_triconnectivity t(g, startnode);
+		c = t.certify();
 
 	} catch (not_triconnected_exception ex) {
+		std::cout.flush();
 		std::cout << "message " << ex.message << std::endl;
 		switch (ex.connectivity) {
-		case 1: s1 = s2 = ex.articulation_point;
+		case 1: {
+			s1 = s2 = ex.articulation_point;
 			return false;
-		case 2: s1 = ex.separation_pair[0]; s2 = ex.separation_pair[1];
+		}
+		case 2:{
+			s1 = ex.separation_pair[0]; s2 = ex.separation_pair[1];
 			return false;
+		}
 		default: assert(false);
 		}
+
+		assert(false && "wtf");
 	}
-	return true;
+	assert(s1==NULL && s2 == NULL);
+	std::cout << "Graph is triconnected! " << std::endl;
+	if (c->verify())
+		return true;
+	else
+		throw "fuck";
+
 }

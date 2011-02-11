@@ -191,6 +191,7 @@ void schmidt_test_separation_pairs(std::istream& cin) {
     	if (cin.eof()) return;
     	cin >> two;
 
+    	std::cout << "*****\n\t"<<graph_number<<"\n*******"<<std::endl;
 
     	if (!hopcroft_tarjan_is_triconnected_nc(one,s1,s2)) {
     		cout << "drama "<< graph_number << endl;
