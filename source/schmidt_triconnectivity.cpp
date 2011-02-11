@@ -6,26 +6,26 @@
 #include "LEDA/graph/ugraph.h"
 #define RECORD_NODES
 
-#define COUT
+//#define COUT
 
 using namespace leda;
 
-list<node> nodes_on(list<edge> edges) {
-	node last=NULL;
-	list<node> l;
-	edge e;
-	forall(e,edges) {
-		if (last==NULL) {
-			l.append(source(e));
-			l.append(target(e));
-			last = target(e);
-		} else {
-			l.append(opposite(last,e));
-			last = opposite(last,e);
-		}
-	}
-	return l;
-}
+//list<node> nodes_on(list<edge> edges) {
+//	node last=NULL;
+//	list<node> l;
+//	edge e;
+//	forall(e,edges) {
+//		if (last==NULL) {
+//			l.append(source(e));
+//			l.append(target(e));
+//			last = target(e);
+//		} else {
+//			l.append(opposite(last,e));
+//			last = opposite(last,e);
+//		}
+//	}
+//	return l;
+//}
 
 void degree_three_or_more(const ugraph& g, node v) throw(not_triconnected_exception) {
 	switch (g.degree(v)) {
@@ -72,14 +72,14 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph)  throw(not_trico
 
 	initial_dfs();
 	chain_decomposition();
-	{
-		fstream f("chains.dot",std::ios::out);
-		chain_tree_to_dot(f);
-	}
-	{
-		fstream f("graph.dot",std::ios::out);
-		dfs_tree_to_dot(f);
-	}
+//	{
+//		fstream f("chains.dot",std::ios::out);
+//		chain_tree_to_dot(f);
+//	}
+//	{
+//		fstream f("graph.dot",std::ios::out);
+//		dfs_tree_to_dot(f);
+//	}
 
 	node min_degree_vertex = the_graph.first_node();
 	{	node n;
@@ -339,15 +339,18 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 		case type1:{
 
 			ci.conc(tci_y, leda::behind);
-			cert->add_bg_path(nodes_on(ci));
-			cert->add_bg_path(nodes_on(d0));
+//			cert->add_bg_path(nodes_on(ci));
+//			cert->add_bg_path(nodes_on(d0));
+			cert->add_bg_path(ci);
+			cert->add_bg_path(d0);
+
 
 		} break;
 		case type2:{
 			ci.reverse();
 			d0.conc(ci, leda::behind);
-			cert->add_bg_path(nodes_on(d0));
-			cert->add_bg_path(nodes_on(tci_y));
+			cert->add_bg_path(d0);
+			cert->add_bg_path(tci_y);
 		} break;
 		default: assert(false && "if-else doesn't cover all paths...");
 		}
@@ -361,7 +364,7 @@ void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
 			for(edge e = c->first_edge; !on_tci_y[e]; e = parent[target(e)]) {
 				di.append(e);
 			}
-			cert->add_bg_path(nodes_on(di));
+			cert->add_bg_path(di);
 		}
 
 
@@ -400,7 +403,9 @@ void schmidt_triconnectivity::add_hard_segments(
 		for(node n=it.next(); n!=NULL; n=it.next()) {
 			vertices_in_chain++;
 			mapping[n] = vertices_in_chain;
+#ifdef COUT
 			std:: cout << "Mapping " << dfi(n) << " " << n->id() << " " << mapping[n] << std::endl;
+#endif
 			reverse_mapping[vertices_in_chain] = n;
 		}
 	}

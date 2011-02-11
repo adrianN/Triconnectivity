@@ -22,8 +22,8 @@ using namespace std;
 using namespace leda;
 
 
-#define COUT
-#define OUTPUT_DOT
+//#define COUT
+//#define OUTPUT_DOT
 
 template <typename A> class interval{
 public:

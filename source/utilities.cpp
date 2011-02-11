@@ -210,29 +210,53 @@ node merge_nodes(ugraph& g, slist<node> nodes) {
 
 //TODO try this with move_edge, to see if it's faster
 node merge_nodes(ugraph& g, node one, node two) {
-	node new_node = g.new_node();
 	node_array<bool> edge_to(g,false);
+	node min, max;
+	if (g.degree(one) > g.degree(two)) {
+		min = two;
+		max = one;
+	} else {
+		min = one;
+		max = two;
+	}
 	edge e;
-	forall_adj_edges(e,one) {
-		node opp = opposite(e,one);
-		if (!edge_to[opp] && new_node!=opp) {
-			g.new_edge(new_node,opp);
-			edge_to[opp] = true;
-		}
+	forall_adj_edges(e,max) {
+		node opp = opposite(e,max);
+		edge_to[opp] = true;
 	}
-	forall_adj_edges(e,two) {
-		node opp = opposite(e,two);
-		if (!edge_to[opp] && new_node!=opp) {
-			g.new_edge(new_node,opp);
-			edge_to[opp] = true;
-		}
-	}
-	g.hide_node(one);
-	g.hide_node(two);
-//	g.del_node(one);
-//	g.del_node(two);
 
-	return new_node;
+	forall_adj_edges(e,min) {
+		node opp = opposite(e,min);
+		if (!edge_to[opp]) {
+			g.move_edge(e,max,opp);
+			edge_to[opp] =true;
+		}
+	}
+	g.hide_node(min);
+	return max;
+//	node new_node = g.new_node();
+//	node_array<bool> edge_to(g,false);
+//	edge e;
+//	forall_adj_edges(e,one) {
+//		node opp = opposite(e,one);
+//		if (!edge_to[opp] && new_node!=opp) {
+//			g.new_edge(new_node,opp);
+//			edge_to[opp] = true;
+//		}
+//	}
+//	forall_adj_edges(e,two) {
+//		node opp = opposite(e,two);
+//		if (!edge_to[opp] && new_node!=opp) {
+//			g.new_edge(new_node,opp);
+//			edge_to[opp] = true;
+//		}
+//	}
+//	g.hide_node(one);
+//	g.hide_node(two);
+////	g.del_node(one);
+////	g.del_node(two);
+//
+//	return new_node;
 }
 
 /* Takes two graphs and indentifies two nodes from each to form a new graph with exactly one separation pair. The result is stored in one. The separation pair is stored in the node arguments */

@@ -53,6 +53,6 @@ int main(int argc, char* argv[]) {
 //		std::cout <<s1->id() << " " << s2->id() << std::endl;
 //		std::cout << s3->id() << " " << s4->id() << std::endl;
 //	}
-	schmidt_test_separation_pairs(f);
+	plantri_schmidt_test(f);
     return 0;
 }

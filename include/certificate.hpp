@@ -31,11 +31,12 @@ private:
 	node_array<node> orig_2_new;
 	node_array<node> new_2_orig;
 	std::vector<std::pair<node,node>* > endvertices;
+	edge_array<bool> edge_accounted_for;
 
 public:
 	certificate(ugraph  & graph,  schmidt_triconnectivity* d);
 	~certificate();
-	bool add_bg_path(list<node> const & edges) throw();
+	bool add_bg_path(list<edge> const & edges) throw();
 
 	bool add_bg_path(const chain * a_chain) throw();
 	bool verify(void) throw();

@@ -1,5 +1,5 @@
 #include "certificate.hpp"
-#include "chain_node_iterator.hpp"
+#include "chain_edge_iterator.hpp"
 #include "utilities.hpp"
 
 //#define BGCOUT
@@ -11,13 +11,14 @@ certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
 	created_by_chain(new_graph,the_graph.number_of_nodes(), -1),
 	le_edges(new_graph,the_graph.number_of_edges(), NULL),
 	orig_2_new(the_graph,NULL),
-	new_2_orig(new_graph,the_graph.number_of_nodes(),NULL)
+	new_2_orig(new_graph,the_graph.number_of_nodes(),NULL),
+	edge_accounted_for(the_graph,false)
 	{}
 
 certificate::~certificate() {
 }
 
-bool certificate::add_bg_path(list<node> const & nodes) throw() {
+bool certificate::add_bg_path(list<edge> const & edges) throw() {
 	if (!still_valid)
 		return false;
 #ifdef BGCOUT
@@ -28,36 +29,59 @@ bool certificate::add_bg_path(list<node> const & nodes) throw() {
 	node current_node = NULL;
 	chains.push_back(new list<edge>());
 
-	node n;
 	unsigned int prev_created_nodes = 0;
-	forall(n,nodes) {
-#ifdef BGCOUT
-		std::cout << decomposition->dfi(n) << " ";
-#endif
-		current_node = n;
 
-		if (first_node == NULL)
-			first_node = current_node;
-
-		node new_node;
-		if (orig_2_new[current_node] == NULL) {
-			new_node = new_graph.new_node();
-			orig_2_new[current_node] = new_node;
-			new_2_orig[new_node] = current_node;
+	node last=NULL,nodes[2]={NULL,NULL};
+	unsigned int num=0;
+	list<node> l;
+	edge e;
+	forall(e,edges) {
+		edge_accounted_for[e]=true;
+		if (last==NULL) {
+			nodes[0] = source(e);
+			nodes[1] = target(e);
+			num = 2;
+			l.append(source(e));
+			l.append(target(e));
+			last = target(e);
 		} else {
-			new_node = orig_2_new[current_node];
-			prev_created_nodes++;
+			l.append(opposite(last,e));
+			nodes[0] = opposite(last,e);
+			nodes[1] = NULL;
+			num=1;
+			last = opposite(last,e);
+		}
+		for(unsigned int i = 0; i<num; i++) {
+
+			current_node = nodes[i];
+	#ifdef BGCOUT
+			std::cout << decomposition->dfi(current_node) << " ";
+	#endif
+			if (first_node == NULL)
+				first_node = current_node;
+
+			node new_node;
+			if (orig_2_new[current_node] == NULL) {
+				new_node = new_graph.new_node();
+				orig_2_new[current_node] = new_node;
+				new_2_orig[new_node] = current_node;
+			} else {
+				new_node = orig_2_new[current_node];
+				prev_created_nodes++;
+			}
+
+			if (last_node !=NULL) {
+				node prev_node = orig_2_new[last_node];
+				assert(prev_node !=NULL);
+				edge added_edge = new_graph.new_edge(prev_node,new_node);
+				list<edge>::item it = chains.back()->append(added_edge);
+				le_edges[added_edge] = new pair<list<edge>*,list<edge>::item>(chains.back(), it);
+			}
+
+			last_node = current_node;
+
 		}
 
-		if (last_node !=NULL) {
-			node prev_node = orig_2_new[last_node];
-			assert(prev_node !=NULL);
-			edge added_edge = new_graph.new_edge(prev_node,new_node);
-			list<edge>::item it = chains.back()->append(added_edge);
-			le_edges[added_edge] = new pair<list<edge>*,list<edge>::item>(chains.back(), it);
-		}
-
-		last_node = current_node;
 
 	}
 
@@ -81,10 +105,10 @@ bool certificate::add_bg_path(list<node> const & nodes) throw() {
 }
 
 bool certificate::add_bg_path(const chain * c) throw() {
-	list<node> l;
-	chain_node_iterator it(c, decomposition);
+	list<edge> l;
+	chain_edge_iterator it(c, decomposition);
 
-	for(node n = it.next(); n!=NULL; n=it.next()) {
+	for(edge n = it.next(); n!=NULL; n=it.next()) {
 		l.append(n);
 	}
 
@@ -95,12 +119,19 @@ bool certificate::add_bg_path(const chain * c) throw() {
 bool certificate::verify() throw() {
 	if (!still_valid)
 		return false;
-	if (!graphs_isomorphic(the_graph, new_graph, new_2_orig)) {
-#ifndef NDEBUG
-		std::cout << "resulting graphs not isomorphic";
-#endif
+	bool isomorphic = true;
+	{edge e;
+	forall_edges(e,the_graph) {
+		isomorphic &= edge_accounted_for[e];
+	}}
+	if (!isomorphic)
 		return false;
-	}
+//	if (!graphs_isomorphic(the_graph, new_graph, new_2_orig)) {
+//#ifndef NDEBUG
+//		std::cout << "resulting graphs not isomorphic";
+//#endif
+//		return false;
+//	}
 	for(int i = chains.size()-1; i>=0; i--) {
 
 		const node a = endvertices[i]->first;
