@@ -31,8 +31,28 @@ void to_file(const ugraph& g, const char* name) {
 
 
 int main(int argc, char* argv[]) {
-	fstream f("./9.txt", std::ios::in);
+	fstream f;
 
-	plantri_schmidt_test(f);
+	if (argc>1)
+		{
+			cout << "reading file " << argv[1] << std::endl;
+
+			f.open(argv[1], std::ios::in);
+		}
+	else {
+		cout << "reading file ./9.txt" << std::endl;
+		f.open("./9.txt", std::ios::in);
+	}
+
+//	node s1, s2,s3,s4;
+//	ugraph g;
+//	f >> g;
+//	hopcroft_tarjan_is_triconnected_nc(g,s3,s4);
+//	schmidt_is_triconnected(g,s1,s2);
+//	if (s1!=NULL && s2 != NULL) {
+//		std::cout <<s1->id() << " " << s2->id() << std::endl;
+//		std::cout << s3->id() << " " << s4->id() << std::endl;
+//	}
+	schmidt_test_separation_pairs(f);
     return 0;
 }

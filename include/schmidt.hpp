@@ -41,6 +41,7 @@ class schmidt_triconnectivity {
 	caterpillar* const caterpillars;
 	ugraph& the_graph;
 	auto_ptr<certificate> cert;
+	unsigned int chains_in_subdivision;
 
 public:
 	friend class chain_edge_iterator;
@@ -50,9 +51,9 @@ public:
 
 	auto_ptr<certificate> certify(void);
 
-	void partition_into_segments(const chain* current_chain, const slist<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12);
+	void partition_into_segments(const chain* current_chain, const list<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12);
 	void add_with_ancestors(chain* a_chain);
-	void add_easy_segments(const chain* current_chain, slist<chain*>& type3, h_array<chain*,unsigned int> const & segment, const int_set& children12);
+	void add_easy_segments(const list<chain*>& type3, h_array<chain*,unsigned int> const & segment, const int_set& children12);
 	void decompose_to_bg_paths(const chain* a_chain);
 
 
@@ -94,7 +95,7 @@ public:
 
    void chain_tree_to_dot(std::ostream& out);
 
-   void create_chain(edge e, unsigned int chain_number);
+   void create_chain(edge e, unsigned int chain_number) throw(not_triconnected_exception);
 
    void mark_as_frond(const edge e);
 };

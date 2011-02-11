@@ -15,7 +15,7 @@ using std::auto_ptr;
 
 using namespace leda;
 
-#define DOTS
+//#define DOTS
 //#define DFSCOUT
 //#define PHI_COUT
 //#define PATHFINDER_COUT

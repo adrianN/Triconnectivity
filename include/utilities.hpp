@@ -30,6 +30,39 @@ template<typename A> A identity(const A& a) { return a; }
 
 enum ord { asc, dsc};
 
+template <typename A, ord o> leda::slist<A> unique_bucket_sort(leda::slist<A> elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
+	A* buckets = new A[end-start+1];
+	bool* set = new bool[end-start+1];
+	for(unsigned int i = 0; i<end-start+1; i++) {
+		set[i] = false;
+	}
+
+	A elem;
+	forall(elem, elems) {
+		const unsigned int elem_v = to_int(elem);
+		buckets[elem_v-start] = elem;
+		set[elem_v-start] = true;
+	}
+
+	leda::slist<A> ret;
+	switch(o) {
+	case asc :
+		for(unsigned int i=0; i<(end-start+1); i++) {
+			if (set[i]) ret.append(buckets[start+i]);
+		}
+		break;
+	case dsc:
+		for(int i=end-start; i>=0; i--) {
+			if (set[i]) ret.append(buckets[start+i]);
+		}
+		break;
+	}
+	delete[] buckets;
+	delete[] set;
+	assert(ret.size() <= elems.size());
+	return ret;
+}
+
 template <typename A, ord o> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
 	leda::slist<A>* buckets = new leda::slist<A>[end-start+1];
 	A elem;

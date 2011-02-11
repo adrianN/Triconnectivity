@@ -2,6 +2,7 @@
 #include "chain_node_iterator.hpp"
 #include "utilities.hpp"
 
+//#define BGCOUT
 
 certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
 	still_valid(true),
@@ -19,7 +20,9 @@ certificate::~certificate() {
 bool certificate::add_bg_path(list<node> const & nodes) throw() {
 	if (!still_valid)
 		return false;
+#ifdef BGCOUT
 	std::cout << "\t****** BG PATH: " ;
+#endif
 	node first_node = NULL;
 	node last_node = NULL;
 	node current_node = NULL;
@@ -28,7 +31,9 @@ bool certificate::add_bg_path(list<node> const & nodes) throw() {
 	node n;
 	unsigned int prev_created_nodes = 0;
 	forall(n,nodes) {
+#ifdef BGCOUT
 		std::cout << decomposition->dfi(n) << " ";
+#endif
 		current_node = n;
 
 		if (first_node == NULL)
@@ -63,11 +68,14 @@ bool certificate::add_bg_path(list<node> const & nodes) throw() {
 	still_valid &= first_node != last_node;
 
 	endvertices.push_back(new pair<node,node>(first_node,last_node));
-
+#ifdef BGCOUT
 	std::cout << std::endl;
+#endif
 
+#ifndef NDEBUG
 	if (!still_valid)
 		std::cout << "\t\t******the above chain is not valid******" <<std::endl;
+#endif
 
 	return still_valid;
 }
@@ -88,7 +96,9 @@ bool certificate::verify() throw() {
 	if (!still_valid)
 		return false;
 	if (!graphs_isomorphic(the_graph, new_graph, new_2_orig)) {
+#ifndef NDEBUG
 		std::cout << "resulting graphs not isomorphic";
+#endif
 		return false;
 	}
 	for(int i = chains.size()-1; i>=0; i--) {
@@ -128,7 +138,9 @@ bool certificate::verify() throw() {
 				std::swap(b_neighbours[0], b_neighbours[1]);
 			}
 			if (a_neighbours[0] == b_neighbours[0] && a_neighbours[1] == b_neighbours[1]) {
+#ifndef NDEBUG
 				std::cout << "chain between parallel links"<< std::endl;
+#endif
 				return false; //chain between parallel links
 			}
 			// update le_edges and the chains
@@ -183,7 +195,9 @@ bool certificate::verify() throw() {
 				}
 			}
 			if (neighbours[0] == third || neighbours[1] == third) {
+#ifndef NDEBUG
 				std::cout << "third node is one of the endpoints " << std::endl;
+#endif
 				return false; //third node is one of the endpoints
 			}
 

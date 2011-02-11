@@ -16,12 +16,13 @@ class not_triconnected_exception {
 public:
 	not_triconnected_exception(string s);
 	not_triconnected_exception(string s,node art_point);
-	not_triconnected_exception(string s,std::pair<node,node> sep_pair);
+	not_triconnected_exception(string s,node sep1, node sep2);
 	unsigned int connectivity;
 	union {
 		node articulation_point;
 		node separation_pair[2];
 	};
+	string message;
 };
 
 #endif /* NOT_TRICONNECTED_EXCEPTION_HPP_ */

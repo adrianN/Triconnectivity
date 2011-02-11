@@ -14,6 +14,8 @@
 
 /* test not-3-connected graphs */
 void test_separation_pairs(std::istream&);
+void schmidt_test_separation_pairs(std::istream&);
+
 /* test 3-conn graphs */
 void plantri_test(std::istream&);
 void plantri_schmidt_test(std::istream&);
