@@ -44,31 +44,33 @@ int main(int argc, char* argv[]) {
 		f.open("./9.txt", std::ios::in);
 	}
 
-	ugraph g;
-//	g.read("./the_graph.leda");
-	f >> g;
-	g.permute_edges();
-	node s3 = NULL,s4 = NULL;
-	hopcroft_tarjan_is_triconnected_nc(g,s3,s4);
-	node n;
-	forall_nodes(n,g) {
-		node s1 = NULL, s2 = NULL;
+//	ugraph g;
+////	g.read("./the_graph.leda");
+//	f >> g;
+//	g.permute_edges();
+//	node s3 = NULL,s4 = NULL;
+//	hopcroft_tarjan_is_triconnected_nc(g,s3,s4);
+//	node n;
+//	forall_nodes(n,g) {
+//		node s1 = NULL, s2 = NULL;
+//
+//		std::cout << "Starting node " << n->id() << std::endl;
+//	schmidt_is_triconnected(g,s1,s2,n);
+//		if (s1!=NULL && s2 != NULL) {
+//			std::cout <<s1->id() << " " << s2->id() << std::endl;
+//			std::cout << s3->id() << " " << s4->id() << std::endl;
+//			if (!((s1->id() == s3->id() && s2->id() == s4->id()) || (s1->id() == s4->id() && s2->id() == s3->id()))) {
+//				exit(-1);
+//			}
+//		} else {
+//			std::cout << "none found" << std::endl;
+//
+//			std::cout << (s3!=NULL ? s3->id() : -1) << " " << (s4!=NULL? s4->id():-1) << std::endl;
+//			exit(-1);
+//		}
+//	}
 
-		std::cout << "Starting node " << n->id() << std::endl;
-	schmidt_is_triconnected(g,s1,s2,n);
-		if (s1!=NULL && s2 != NULL) {
-			std::cout <<s1->id() << " " << s2->id() << std::endl;
-			std::cout << s3->id() << " " << s4->id() << std::endl;
-			if (!((s1->id() == s3->id() && s2->id() == s4->id()) || (s1->id() == s4->id() && s2->id() == s3->id()))) {
-				exit(-1);
-			}
-		} else {
-			std::cout << "none found" << std::endl;
-
-			std::cout << (s3!=NULL ? s3->id() : -1) << " " << (s4!=NULL? s4->id():-1) << std::endl;
-			exit(-1);
-		}
-	}
-//	schmidt_test_separation_pairs(f);
+	plantri_schmidt_test(f);
+	//schmidt_test_separation_pairs(f);
     return 0;
 }

@@ -2,7 +2,8 @@
 #include "chain_edge_iterator.hpp"
 #include "utilities.hpp"
 
-#define BGCOUT
+//#define BGCOUT
+//#define VERIFYCOUT
 
 certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
 	still_valid(true),
@@ -126,20 +127,17 @@ bool certificate::verify() throw() {
 	}}
 	if (!isomorphic)
 		return false;
-	if (!graphs_isomorphic(the_graph, new_graph, new_2_orig)) {
-#ifndef NDEBUG
-		std::cout << "resulting graphs not isomorphic";
-#endif
-		return false;
-	}
-	for(int i = chains.size()-1; i>=3; i--) {
-		{	node n;
-		forall_nodes(n,new_graph) {
-			std::cout <<"(" << n->id() << "," << new_graph.degree(n) << ") ";
-		}
-		std::cout << std::endl;
 
-	}
+	for(int i = chains.size()-1; i>=3; i--) {
+#ifdef VERIFYCOUT
+		{	node n;
+			forall_nodes(n,new_graph) {
+				std::cout <<"(" << n->id() << "," << new_graph.degree(n) << ") ";
+			}
+			std::cout << std::endl;
+
+		}
+#endif
 		const node a = endvertices[i]->first;
 		const node b = endvertices[i]->second;
 		delete endvertices[i];
@@ -152,7 +150,7 @@ bool certificate::verify() throw() {
 		unsigned int type = 0;
 		if (a_smooth) type++;
 		if (b_smooth) type++;
-#ifdef BGCOUT
+#ifdef VERIFYCOUT
 		std::cout << "Checking chain " << i << " endvertices " << decomposition->dfi(new_2_orig[a]) << " (" << new_graph.degree(a) << "," << a->id() << ") " << decomposition->dfi(new_2_orig[b]) << " (" << new_graph.degree(b) << "," << b->id() << ") " << type<< " ";
 		std::cout << "edges ";
 		{ edge e;
@@ -168,8 +166,9 @@ bool certificate::verify() throw() {
 				// delete the chain
 				delete(le_edges[to_be_deleted]);
 				le_edges[to_be_deleted] = NULL;
-
-				new_graph.del_edge(to_be_deleted);
+				assert(to_be_deleted!=NULL);
+				assert(graph_of(to_be_deleted) == &new_graph);
+				new_graph.hide_edge(to_be_deleted);
 				if (new_graph.degree(source(to_be_deleted)) == 0) {
 					assert(created_by_chain[source(to_be_deleted)] == i);
 				}
@@ -184,7 +183,7 @@ bool certificate::verify() throw() {
 
 		switch(type) {
 		case 2: {		//subdivide 2, connect
-#ifdef BGCOUT
+#ifdef VERIFYCOUT
 			std::cout << "subdivide 2, connect" << std::endl;
 #endif
 			node a_neighbours[2];
@@ -214,11 +213,15 @@ bool certificate::verify() throw() {
 #endif
 				return false;
 			} else if(i==3 && !(a_neighbours[0] == b_neighbours[0] && a_neighbours[1] == b_neighbours[1])) {
+#ifndef NDEBUG
 				std::cout << "chain 3 does not run between parallel links" << std::endl;
+#endif
 				return false;
 			}
 			// update le_edges and the chains
+#ifdef VERIFYCOUT
 			std::cout << "updating" << std::endl;
+#endif
 			{ 	list<edge>* lists[2][2];
 
 				//first remove the smoothened edges from the chains
@@ -228,6 +231,7 @@ bool certificate::verify() throw() {
 						pair<list<edge>*, list<edge>::item>* p = le_edges[e];
 						p->first->del_item(p->second);
 						lists[j][i++] = p->first;
+						delete(le_edges[e]);
 					}
 					assert(i==2);
 					j++;
@@ -236,27 +240,32 @@ bool certificate::verify() throw() {
 						pair<list<edge>*, list<edge>::item>* p = le_edges[e];
 						p->first->del_item(p->second);
 						lists[j][i++] = p->first;
+						delete(le_edges[e]);
 					}
 					assert(j==1);
 				}
 
 				// then remove them from the graph
-				edge es[2];
-				es[0] = smoothe(new_graph,a);
-				es[1] = smoothe(new_graph,b);
+				edge es[2] = {NULL,NULL};
+				es[0] = smoothen(new_graph,a);
+				es[1] = smoothen(new_graph,b);
 
 				//and insert the new edges into the chains
 				for(unsigned int i = 0; i<2; i++) {
+#ifdef VERIFYCOUT
 					std::cout << i << " belonged to " << lists[i][0] << " " << lists[i][1] << std::endl;
+#endif
 					assert(lists[i][1] == lists[i][0]);
 					list<edge>::item it = lists[i][0]->append(es[i]);
+					assert(es[i] != NULL);
+					assert(graph_of(es[i]) == &new_graph);
 					le_edges[es[i]] = new pair<list<edge>*,list<edge>::item>(lists[i][0],it);
 				}
 			}
 
 		} break;
 		case 1: {		//subdivide 1, connect
-#ifdef BGCOUT
+#ifdef VERIFYCOUT
 			std::cout << "subdivide one, connect" << std::endl;
 #endif
 			node third, sub;
@@ -285,19 +294,25 @@ bool certificate::verify() throw() {
 
 			//update le_edges and the chains
 			//first delete smoothened edges from the chain
+#ifdef VERIFYCOUT
 			std::cout << "updating" << std::endl;
+#endif
 
 			{ 	list<edge>* lists[2];
-				unsigned int i = 0;
-				{	edge e;
+
+				{	unsigned int i = 0;
+					edge e;
 					forall_adj_edges(e,sub) {
 						pair<list<edge>*, list<edge>::item>* p = le_edges[e];
 						p->first->del_item(p->second);
 						lists[i++] = p->first;
+						delete(le_edges[e]);
 					}
+					assert(i==2);
 				}
+
 				//then from the graph
-				edge e1 = smoothe(new_graph,sub);
+				edge e1 = smoothen(new_graph,sub);
 
 				//and insert the new edge into the chain
 				assert(lists[0] == lists[1]);
@@ -306,7 +321,7 @@ bool certificate::verify() throw() {
 			}
 		} break;
 		case 0: {		//connect two is always okay, because of the checks we performed before adding this chain.
-#ifdef BGCOUT
+#ifdef VERIFYCOUT
 			std::cout << "connect two" << std::endl;
 #endif
 		} break;
@@ -315,7 +330,24 @@ bool certificate::verify() throw() {
 		}
 	}
 
-	//TODO check 0,1,2
-
+		//TODO check 0,1,2
+for(int i=0; i<3; i++ ) {
+		{	edge to_be_deleted;
+			forall(to_be_deleted, *chains[i]) {
+				// delete the chain
+				delete(le_edges[to_be_deleted]);
+				le_edges[to_be_deleted] = NULL;
+				assert(to_be_deleted!=NULL);
+				assert(graph_of(to_be_deleted) == &new_graph);
+				new_graph.hide_edge(to_be_deleted);
+			}
+			delete(chains[i]);
+			chains[i] = NULL;
+		}
+//		const node a = endvertices[i]->first;
+//		const node b = endvertices[i]->second;
+		delete endvertices[i];
+		endvertices[i] = NULL;
+}
 	return true;
 }

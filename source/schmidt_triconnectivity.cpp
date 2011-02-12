@@ -6,26 +6,9 @@
 #include "LEDA/graph/ugraph.h"
 #define RECORD_NODES
 
-#define COUT
+//#define COUT
 
 using namespace leda;
-
-//list<node> nodes_on(list<edge> edges) {
-//	node last=NULL;
-//	list<node> l;
-//	edge e;
-//	forall(e,edges) {
-//		if (last==NULL) {
-//			l.append(source(e));
-//			l.append(target(e));
-//			last = target(e);
-//		} else {
-//			l.append(opposite(last,e));
-//			last = opposite(last,e);
-//		}
-//	}
-//	return l;
-//}
 
 void degree_three_or_more(const ugraph& g, node v) throw(not_triconnected_exception) {
 	switch (g.degree(v)) {
@@ -72,14 +55,15 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph, node startnode =
 
 	initial_dfs(startnode);
 	chain_decomposition();
-	{
-		fstream f("chains.dot",std::ios::out);
-		chain_tree_to_dot(f);
-	}
-	{
-		fstream f("graph.dot",std::ios::out);
-		dfs_tree_to_dot(f);
-	}
+	check_prop_b();
+//	{
+//		fstream f("chains.dot",std::ios::out);
+//		chain_tree_to_dot(f);
+//	}
+//	{
+//		fstream f("graph.dot",std::ios::out);
+//		dfs_tree_to_dot(f);
+//	}
 
 	node min_degree_vertex = the_graph.first_node();
 	{	node n;
@@ -98,6 +82,55 @@ schmidt_triconnectivity::~schmidt_triconnectivity(void) {
 		delete chains[i];
 	delete[] caterpillars;
 	delete[] node_at;
+}
+
+void schmidt_triconnectivity::check_prop_b(void) const throw(not_triconnected_exception) {
+	int_set marked(chains.size());
+	marked.insert(0);
+	for(unsigned int i=3; i<chains.size(); i++) {
+		if (chains[i]->get_type() == three_a || chains[i]->get_type() == three_b) {
+			node s = chains[i]->get_s();
+
+			assert(inner_of_chain[s]>=0);
+			unsigned int chain_at_s = (unsigned int)inner_of_chain[s];
+
+			for(chain* c = chains[i]->get_parent(); !marked.member(c->number) && !(c->number == chain_at_s || s == c->get_t()); c = c->get_parent()) {
+				marked.insert(c->number);
+			}
+		}
+	}
+
+  /*  def check_property_B(self): # Lemma 61
+        marked = [0]
+        for i in range(self.numchains):
+        # need to process chains in good order.
+        # For example, the iopposite order will not work:
+        #  for i in range(self.numchains-1,-1,-1):
+            if self.chaintype[i] in ("3a","3b"):
+                sCi = self.s[i]
+                csCi = self.chain[sCi]
+                k = self.parent_chain[i]
+                # original:
+                while k not in marked and not \
+                    (k == csCi or sCi == self.s[k] or sCi == self.t[k]):
+                # abgewandelt:
+                # while k not in marked and k != csCi:
+                    marked.append(k)
+                    k = self.parent_chain[k]
+        for i in range(self.numchains):
+            if self.ss[i] != self.t[i] and i not in marked:
+                #print marked
+                raise NotConnected(3,"Property-B-test. "
+                        "Chain %d unmarked."%i, (self.s[i],self.t[i]))*/
+
+	for(unsigned int i=0; i<chains.size(); i++) {
+		if (!marked.member(i) && !chains[i]->is_backedge) {
+#ifdef COUT
+			std::cout << "chain " << i << " not marked" << std::endl;
+#endif
+			throw not_triconnected_exception("Property B", chains[i]->get_s(), chains[i]->get_t());
+		}
+	}
 }
 
 auto_ptr<certificate> schmidt_triconnectivity::certify(void) {
@@ -185,7 +218,14 @@ auto_ptr<certificate> schmidt_triconnectivity::certify(void) {
 	return cert;
 }
 
-void schmidt_triconnectivity::partition_into_segments(const chain* current_chain, const list<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12) {
+void schmidt_triconnectivity::partition_into_segments(
+		const chain* current_chain,
+		const list<chain*>& type3,
+		h_array<unsigned int,
+		slist<node> >& attachment_vertices,
+		h_array<unsigned int, slist<chain*> >& segment_chains,
+		h_array<chain*,unsigned int>& segment,
+		const int_set& children12) throw() {
 	node_array<int> minimal_chain(the_graph,-1);
 	{	node n; //leda bugfix
 		forall_nodes(n,the_graph) {
@@ -260,7 +300,7 @@ void schmidt_triconnectivity::add_easy_segments(const list<chain*>& type3, h_arr
 	}
 }
 
-void schmidt_triconnectivity::add_with_ancestors(chain* a_chain) {
+void schmidt_triconnectivity::add_with_ancestors(chain* a_chain) throw() {
 	decompose_to_bg_paths(a_chain);
 
 	//add all ancestors of t3_chain that are still in H, in order of <
@@ -275,7 +315,7 @@ void schmidt_triconnectivity::add_with_ancestors(chain* a_chain) {
 	}
 }
 
-void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) {
+void schmidt_triconnectivity::decompose_to_bg_paths(const chain* a_chain) throw() {
 	switch(a_chain->get_type()) {
 	case two_b: /* these must be part of caterpillars and get decomposed */ break;
 	case three_b: {
@@ -634,10 +674,19 @@ void schmidt_triconnectivity::add_hard_segments(
 
 }
 
-unsigned int schmidt_triconnectivity::dfi(const node v) const {assert(v!=NULL); return dfis[v];}
-void schmidt_triconnectivity::set_dfi(const node v, const unsigned int d) { assert(v!=NULL); assert(dfis[v] == 0); dfis[v] = d; node_at[d] = v;}
+inline unsigned int schmidt_triconnectivity::dfi(const node v) const throw() {
+	assert(v!=NULL);
+	return dfis[v];
+}
 
-node schmidt_triconnectivity::parent_node(const node v) const {
+void schmidt_triconnectivity::set_dfi(const node v, const unsigned int d) throw() {
+	assert(v!=NULL);
+	assert(dfis[v] == 0);
+	dfis[v] = d;
+	node_at[d] = v;
+}
+
+node schmidt_triconnectivity::parent_node(const node v) const throw() {
 	assert(v!=NULL);
 	edge e = parent[v];
 	if (e!=NULL) {
@@ -650,7 +699,7 @@ node schmidt_triconnectivity::parent_node(const node v) const {
 	}
 }
 
-bool schmidt_triconnectivity::in_subdivision(const node n) const {
+inline bool schmidt_triconnectivity::in_subdivision(const node n) const throw() {
 	return dfi(n)==1 || (chains[inner_of_chain[n]]->is_in_subdivision()); //every node is the inner node of some chain, except maybe the root. I'm not sure about that TODO
 }
 
@@ -680,8 +729,8 @@ void schmidt_triconnectivity::create_chain(edge e, unsigned int chain_number) th
 	}
 
 	assert(dfi(current_chain->get_s()) < dfi(current_chain->get_t()));
-
-	switch (classify_chain(chain_number)) {
+	classify_chain(chain_number);
+	switch (current_chain->get_type()) {
 	case three_a: case three_b: {
 		const node s = current_chain->get_s();
 		chain* chain_at_s = chains[inner_of_chain[s]];
@@ -692,7 +741,7 @@ void schmidt_triconnectivity::create_chain(edge e, unsigned int chain_number) th
 	}
 }
 
-void schmidt_triconnectivity::chain_decomposition(void) {
+void schmidt_triconnectivity::chain_decomposition(void) throw(not_triconnected_exception) {
 	//Calculate the list of fronds in DF order of their starting vertex and find the chain for each frond. This can probably be incorporated into the DFS.
 	unsigned int chain_number = 3; //the first three chains are found during dfs
 
@@ -746,7 +795,7 @@ void schmidt_triconnectivity::chain_decomposition(void) {
  * * calculate DFIs for each vertex
  * * finding an initial K32 subdivision
  */
-void schmidt_triconnectivity::initial_dfs(node startnode) {
+void schmidt_triconnectivity::initial_dfs(node startnode) throw(not_triconnected_exception) {
 
 		node current_node;
 		if (startnode ==NULL) {
@@ -877,7 +926,7 @@ void schmidt_triconnectivity::initial_dfs(node startnode) {
 
 /* takes the first inner vertex of a chain (except C0?) and walks upwards in the tree until the edge to the parent is contained in another chain
  * Marks edges on the path as belonging to the current chain. Marks inner nodes as inner nodes of the chain. Sets chain.t */
-void schmidt_triconnectivity::mark_path(const node start, const unsigned int the_chain) {
+void schmidt_triconnectivity::mark_path(const node start, const unsigned int the_chain) throw() {
 	chains[the_chain]->number = the_chain;
 #ifdef COUT
 	std::cout << "Chain " << the_chain << "\n\t";
@@ -915,13 +964,13 @@ void schmidt_triconnectivity::mark_path(const node start, const unsigned int the
 #endif
 }
 
-inline bool schmidt_triconnectivity::contained_in_chain(const node v, const chain* chain) {
+inline bool schmidt_triconnectivity::contained_in_chain(const node v, const chain* chain) const throw() {
 	return (unsigned int)inner_of_chain[v] == chain->number || v == chain->get_s() || v == chain->get_t();
 }
 
-chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_number) {
+void schmidt_triconnectivity::classify_chain(const unsigned int chain_number) throw() {
 	if (chain_number == 0)
-		return unmarked; // first chain stays unmarked
+		return; // first chain stays unmarked
 
 	chain* const the_chain = chains[chain_number];
 	chain* const the_parent = the_chain->get_parent();
@@ -942,7 +991,7 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 		}
 #endif
 		the_chain->set_type(one);
-		return one;
+		return;
 	}
 
 	//the chain starts at the same node as its parent, it is of type 2
@@ -952,11 +1001,11 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 		// type 2: the_chain = C_0, t(the_chain) is inner vertex of parent
 		if (the_chain->is_backedge) {
 			the_chain->set_type(two_a);
-			return two_a;
+			return;
 		} else {
 			the_chain->set_type(two_b);
 			the_chain->is_marked = true;
-			return two_b;
+			return;
 		}
 
 	}
@@ -964,7 +1013,7 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 
 	if (!the_parent->is_marked) {
 		the_chain->set_type(three_a);
-		return three_a;
+		return;
 	} else {
 		the_chain->set_type(three_b);
 		//caterpillars[chain_number].append(the_chain);
@@ -976,12 +1025,18 @@ chain_type schmidt_triconnectivity::classify_chain(const unsigned int chain_numb
 			caterpillars[chain_number].append(c_jay);
 			c_jay = c_jay->get_parent();
 		}
-		return three_b;
+		return;
 	}
 }
 
 /* do a dfs until an edge back to the root is encountered. if continue_after_found is true, continue anyway. */
-bool schmidt_triconnectivity::find_a_cycle_to_root(node& start_node, edge& backedge, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found, const unsigned int current_chain) {
+bool schmidt_triconnectivity::find_a_cycle_to_root(
+		node& start_node,
+		edge& backedge,
+		unsigned int& number_seen,
+		edge_array<bool>& seen_edge,
+		bool continue_after_found,
+		const unsigned int current_chain) throw() {
 		stack<edge> first_cycle;
 
 		/* push all neighbours of the current node */ //TODO is this necessary? Should be enough to push this node
@@ -1068,7 +1123,7 @@ bool schmidt_triconnectivity::find_a_cycle_to_root(node& start_node, edge& backe
 		return found_cycle;
 }
 
-void schmidt_triconnectivity::add_to_subdivision(chain* c) {
+void schmidt_triconnectivity::add_to_subdivision(chain* c) throw() {
 	assert(c!=NULL);
 #ifdef COUT
 	std::cout << "Adding to subdivision " << c->number << " " << c->get_parent()   <<  std::endl;
@@ -1105,7 +1160,7 @@ void schmidt_triconnectivity::add_to_subdivision(chain* c) {
 #endif
 }
 
-void schmidt_triconnectivity::mark_as_frond(const edge e) {
+void schmidt_triconnectivity::mark_as_frond(const edge e) throw() {
 	assert(dfi(source(e))!=0 && "fronds have both ends explored");
 	assert(dfi(target(e))!=0 && "fronds have both ends explored");
 	assert(dfi(source(e))<dfi(target(e)) && "fronds go away from the root");
@@ -1231,8 +1286,9 @@ bool schmidt_is_triconnected(ugraph& g, node & s1, node& s2, node startnode = NU
 		c = t.certify();
 
 	} catch (not_triconnected_exception ex) {
-		std::cout.flush();
+#ifdef COUT
 		std::cout << "message " << ex.message << std::endl;
+#endif
 		switch (ex.connectivity) {
 		case 1: {
 			s1 = s2 = ex.articulation_point;
@@ -1244,11 +1300,11 @@ bool schmidt_is_triconnected(ugraph& g, node & s1, node& s2, node startnode = NU
 		}
 		default: assert(false);
 		}
-
-		assert(false && "wtf");
 	}
 	assert(s1==NULL && s2 == NULL);
+#ifdef COUT
 	std::cout << "Graph is triconnected! " << std::endl;
+#endif
 	if (c->verify())
 		return true;
 	else

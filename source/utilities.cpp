@@ -14,9 +14,10 @@ using std::endl;
 
 #define DETERMINISTIC_GLUE
 
-edge smoothe(ugraph & g, node n) {
-	std::cout << "smoothe" << std::endl;
+edge smoothen(ugraph & g, node n) {
+#ifndef NDEBUG
 	int numedges = g.number_of_edges();
+#endif
 	assert(g.degree(n) == 2);
 	node neighbours[2];
 	{	unsigned int i = 0;
@@ -25,13 +26,17 @@ edge smoothe(ugraph & g, node n) {
 			neighbours[i++] = opposite(e,n);
 		}
 	}
-	g.del_node(n);
+
 	edge e = g.new_edge(neighbours[0], neighbours[1]);
+
+
+	g.del_node(n);
+
 	assert(g.number_of_edges() == numedges-1);
 	return e;
 }
 
-//
+//this may or may not depend on undefined behaviour.
 int edge_to_int(const node n1, const node n2) {
 	int n = 0;
 	assert(n1->id() < USHRT_MAX);
@@ -212,7 +217,6 @@ node merge_nodes(ugraph& g, slist<node> nodes) {
 	return new_node;
 }
 
-//TODO try this with move_edge, to see if it's faster
 node merge_nodes(ugraph& g, node one, node two) {
 	node_array<bool> edge_to(g,false);
 	node min, max;
@@ -232,8 +236,8 @@ node merge_nodes(ugraph& g, node one, node two) {
 	forall_adj_edges(e,min) {
 		node opp = opposite(e,min);
 		if (!edge_to[opp] && max != opp) {
-			g.new_edge(max,opp);
-			//g.move_edge(e,max,opp);
+			//g.new_edge(max,opp);
+			g.move_edge(e,max,opp);
 			edge_to[opp] =true;
 		}
 	}

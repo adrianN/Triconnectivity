@@ -46,7 +46,7 @@ void plantri_schmidt_test(std::istream& cin) {
     ugraph g;
     unsigned int graph_number = 0;
     while(!cin.eof()) {
-    	node s1,s2;
+    	node s1=NULL,s2=NULL;
     	graph_number++;
     	cin >> g;
 //    	std::cout << "************\n\t" << graph_number << "\n********\n" << std::endl;
@@ -191,7 +191,7 @@ void schmidt_test_separation_pairs(std::istream& cin) {
     	if (cin.eof()) return;
     	cin >> two;
 
-    	std::cout << "*****\n\t"<<graph_number<<"\n*******"<<std::endl;
+    	//std::cout << "*****\n\t"<<graph_number<<"\n*******"<<std::endl;
 
     	if (!hopcroft_tarjan_is_triconnected_nc(one,s1,s2)) {
     		cout << "drama "<< graph_number << endl;
@@ -261,13 +261,13 @@ void schmidt_test_separation_pairs(std::istream& cin) {
 			exit(-1);
     	}
 
-    	if (graph_number % 5000 == 0) {
+    	if (graph_number % 2500 == 0){
     		cout << '.';
-    		cout.flush();
+			cout.flush();
     	}
-    	if (graph_number % 50000 == 0)
-    		cout << '\n';
+    	if (graph_number % 25000 == 0)
+    		cout << " " << graph_number << std::endl;
     }
-
+    cout << graph_number << std::endl;
 
 }

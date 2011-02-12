@@ -52,11 +52,18 @@ public:
 
 	auto_ptr<certificate> certify(void);
 
-	void partition_into_segments(const chain* current_chain, const list<chain*>& type3, h_array<unsigned int, slist<node> >& attachment_vertices, h_array<unsigned int, slist<chain*> >& segment_chains, h_array<chain*,unsigned int>& segment, const int_set& children12);
-	void add_with_ancestors(chain* a_chain);
+	void partition_into_segments(
+			const chain* current_chain,
+			const list<chain*>& type3,
+			h_array<unsigned int, slist<node> >& attachment_vertices,
+			h_array<unsigned int, slist<chain*> >& segment_chains,
+			h_array<chain*,unsigned int>& segment,
+			const int_set& children12) throw();
+	void add_with_ancestors(chain* a_chain) throw();
 	void add_easy_segments(const list<chain*>& type3, h_array<chain*,unsigned int> const & segment, const int_set& children12);
-	void decompose_to_bg_paths(const chain* a_chain);
+	void decompose_to_bg_paths(const chain* a_chain) throw();
 
+	void check_prop_b(void) const throw(not_triconnected_exception);
 
 	void add_hard_segments(
 			const chain* current_chain,
@@ -65,32 +72,31 @@ public:
 			h_array<unsigned int, slist<chain*> > const & segment_chains,
 			slist<chain*>& children12) throw(not_triconnected_exception);
 
-	unsigned int dfi(const node v) const;
-	void set_dfi(const node v, const unsigned int d);
-	node parent_node(const node v) const;
-	bool in_subdivision(const chain& c) const;
-	bool in_subdivision(const chain* c) const;
-	bool in_subdivision(const node n) const;
+	unsigned int dfi(const node v) const throw();
+	void set_dfi(const node v, const unsigned int d) throw();
+	node parent_node(const node v) const throw();
 
-	void chain_decomposition(void);
+	bool in_subdivision(node v) const throw();
+
+	void chain_decomposition(void) throw(not_triconnected_exception);
 
 	/* In this function we do a DFS on the graph to
 	 * * calculate DFIs for each vertex
 	 * * finding an initial K32 subdivision
 	 */
-	void initial_dfs(node startnode);
+	void initial_dfs(node startnode) throw(not_triconnected_exception);
 
 	/* takes the first inner vertex of a chain (except C0?) and walks upwards in the tree until the edge to the parent is contained in another chain
 	 * Marks edges on the path as belonging to the current chain. Marks inner nodes as inner nodes of the chain. Sets chain.t */
-	void mark_path(const node start, const unsigned int the_chain);
+	void mark_path(const node start, const unsigned int the_chain) throw();
 
-	inline bool contained_in_chain(const node v, const chain* chain);
+	bool contained_in_chain(const node v, const chain* chain) const throw();
 
-	chain_type classify_chain(const unsigned int chain_number);
+	void classify_chain(const unsigned int chain_number) throw();
 
-	bool find_a_cycle_to_root(node& start_node, edge& backedge, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found, const unsigned int current_chain);
+	bool find_a_cycle_to_root(node& start_node, edge& backedge, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found, const unsigned int current_chain) throw();
 
-	void add_to_subdivision(chain* c);
+	void add_to_subdivision(chain* c) throw();
 
    void dfs_tree_to_dot(std::ostream& out);
 
@@ -98,7 +104,7 @@ public:
 
    void create_chain(edge e, unsigned int chain_number) throw(not_triconnected_exception);
 
-   void mark_as_frond(const edge e);
+   void mark_as_frond(const edge e) throw();
 };
 
 #endif /* SCHMIDT_HPP_ */
