@@ -4,6 +4,7 @@
 
 //#define BGCOUT
 //#define VERIFYCOUT
+//#define DO_NOTHING
 
 certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
 	still_valid(true),
@@ -20,6 +21,9 @@ certificate::~certificate() {
 }
 
 bool certificate::add_bg_path(list<edge> const & edges) throw() {
+#ifdef DO_NOTHING
+	return true;
+#else
 	if (!still_valid)
 		return false;
 #ifdef BGCOUT
@@ -103,9 +107,13 @@ bool certificate::add_bg_path(list<edge> const & edges) throw() {
 #endif
 
 	return still_valid;
+#endif
 }
 
 bool certificate::add_bg_path(const chain * c) throw() {
+#ifdef DO_NOTHING
+	return true;
+#else
 	list<edge> l;
 	chain_edge_iterator it(c, decomposition);
 
@@ -113,11 +121,14 @@ bool certificate::add_bg_path(const chain * c) throw() {
 		l.append(n);
 	}
 
-	add_bg_path(l);
-	return true;
+	return add_bg_path(l);
+#endif
 }
 
 bool certificate::verify() throw() {
+#ifdef DO_NOTHING
+	return true;
+#else
 	if (!still_valid)
 		return false;
 	bool isomorphic = true;
@@ -350,4 +361,5 @@ for(int i=0; i<3; i++ ) {
 		endvertices[i] = NULL;
 }
 	return true;
+#endif
 }

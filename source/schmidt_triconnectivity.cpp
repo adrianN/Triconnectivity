@@ -7,6 +7,7 @@
 #define RECORD_NODES
 
 //#define COUT
+//#define DOT_OUTPUT
 
 using namespace leda;
 
@@ -53,18 +54,6 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph, node startnode =
 	if (the_graph.number_of_nodes()<4)
 		throw not_triconnected_exception("graph has less than four nodes");
 
-	initial_dfs(startnode);
-	chain_decomposition();
-	check_prop_b();
-//	{
-//		fstream f("chains.dot",std::ios::out);
-//		chain_tree_to_dot(f);
-//	}
-//	{
-//		fstream f("graph.dot",std::ios::out);
-//		dfs_tree_to_dot(f);
-//	}
-
 	node min_degree_vertex = the_graph.first_node();
 	{	node n;
 		forall_nodes(n,the_graph) {
@@ -74,6 +63,17 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph, node startnode =
 	}
 
 	degree_three_or_more(the_graph,min_degree_vertex);
+
+	initial_dfs(startnode);
+	chain_decomposition();
+	check_prop_b();
+//	{
+//		fstream f("chains.dot",std::ios::out);
+//		chain_tree_to_dot(f);
+//	}
+
+
+
 
 }
 
@@ -784,7 +784,8 @@ void schmidt_triconnectivity::chain_decomposition(void) throw(not_triconnected_e
 	//Chain decompositition partitions edges
 	{	edge e;
 		forall_edges(e,the_graph) {
-			assert(belongs_to_chain[e] >= 0 && (unsigned int)belongs_to_chain[e] < chains.size());
+			assert(belongs_to_chain[e] >= 0);
+			assert((unsigned int)belongs_to_chain[e] < chains.size());
 		}
 	}
 #endif
@@ -1290,6 +1291,10 @@ bool schmidt_is_triconnected(ugraph& g, node & s1, node& s2, node startnode = NU
 		std::cout << "message " << ex.message << std::endl;
 #endif
 		switch (ex.connectivity) {
+		case 0: {
+			s1 = s2 = NULL;
+			return false;
+		}
 		case 1: {
 			s1 = s2 = ex.articulation_point;
 			return false;
@@ -1298,7 +1303,6 @@ bool schmidt_is_triconnected(ugraph& g, node & s1, node& s2, node startnode = NU
 			s1 = ex.separation_pair[0]; s2 = ex.separation_pair[1];
 			return false;
 		}
-		default: assert(false);
 		}
 	}
 	assert(s1==NULL && s2 == NULL);

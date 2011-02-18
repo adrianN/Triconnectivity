@@ -177,6 +177,17 @@ public:
     		s2 = articulation_point;
     		return false;
     	}
+
+//    	node n;
+//    	forall_nodes(n,the_graph) {
+//    		if (the_graph.degree(n) == 2) {
+//    			edge e = the_graph.first_adj_edge(n);
+//    			s1 = opposite(e,n);
+//    			e = the_graph.next_edge(e);
+//    			s2 = opposite(e,n);
+//    			return false;
+//    		}
+//    	}
         return pathsearch(the_graph.first_node(),s1,s2);
     }
 
@@ -554,12 +565,14 @@ private:
     						is_biconnected &= lowpoint_one[w] == v;
     					}
     					if (!is_biconnected) {
+#ifdef DFSCOUT
     						std::cout << "graph is not biconnected ";
     						if (v==1) {
     							std::cout << "v is root and" << w << " has lowpoint " << lowpoint_one[w] << std::endl;
     						} else {
     							std::cout << "edge from " << v  << " to " << w << " lowpoint_one[w] " << lowpoint_one[w] << std::endl;
     						}
+#endif
     						articulation_point = node_v;
     					}
                     }
@@ -853,7 +866,7 @@ private:
                 {   const node node_child_w = the_graph.adj_nodes(node_w).contents(the_graph.adj_nodes(node_w).first());
                     // it should also be ok to check whether the first out-edge of w is a frond.
                     // I don't know why we need to check number[node_child_w] > w. TODO
-                    const bool deg_two_case =  (the_graph.degree(node_w) == 2 && number[node_child_w] > w);
+                    const bool deg_two_case =  (the_graph.degree(node_w) == 2 /*&& number[node_child_w] > w*/);
 
                     if (deg_two_case) {
 #ifdef PATHSEARCH_COUT_SEPPAIR
