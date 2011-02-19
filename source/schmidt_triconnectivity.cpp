@@ -1280,10 +1280,16 @@ bool schmidt_is_triconnected(ugraph& g, node & s1, node& s2, node startnode = NU
 		}
 		case 1: {
 			s1 = s2 = ex.articulation_point;
+#ifdef COUT
+			std::cout << "Articulation point: " << s1->id();
+#endif
 			return false;
 		}
 		case 2:{
 			s1 = ex.separation_pair[0]; s2 = ex.separation_pair[1];
+#ifdef COUT
+			std::cout << "Sep pair " << s1->id() << " " << s2->id() << std::endl;
+#endif
 			return false;
 		}
 		}
