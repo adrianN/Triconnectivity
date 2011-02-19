@@ -26,17 +26,18 @@ void to_file(const ugraph& g, const char* name) {
 }
 
 
-
 bool check_graph(ugraph u) {
 
 	//simple_to_dot(u,f);
 	//std::cout << "n " << u.number_of_nodes() << " m " << u.number_of_edges() << std::endl;
-	node s1=NULL, s2=NULL, s3=NULL, s4=NULL;
+	node s1=NULL, s2=NULL;
+	node s3=NULL, s4=NULL;
 	bool s =  schmidt_is_triconnected(u,s1,s2);
 	bool ht = hopcroft_tarjan_is_triconnected(u,s3,s4);
-	bool naive = naive_is_triconnected(u);
-	bool all = s == naive && naive == ht;
+	bool all = s == ht;
 	if (!all) {
+		bool naive = naive_is_triconnected(u);
+
 		to_file(u,"the_graph");
 		fstream f("./the_graph.tri", ios::out);
 		write_planar_code(u,f);
@@ -64,9 +65,9 @@ bool check_graph(ugraph u) {
 	return s;
 }
 
-bool check_random_graph(int n, float p) {
+bool check_random_graph(int n, int m) {
 	graph g;
-	random_simple_undirected_graph(g,n,(int)(((float)(n*(n-1)/2))*p));
+	random_simple_undirected_graph(g,n,m);
 	ugraph u(g);
 	return check_graph(u);
 }
@@ -129,22 +130,28 @@ void check_planar_code(const char* filename) {
 	}
 }
 
-void graph_statistics(void) {
-	const int n = 25;
-	const int num = 1000;
-	for (int f = 3; f < n; f++) {
+
+void graph_statistics(int n) {
+	const int num = 80;
+	const int edges = (n*(n-1))/2;
+	for (float f = 5; f < 25; f+=0.3) {
 		int count=0;
 		const float p = f/((float)n);
+		const int m = (int)((float)edges*p);
+		std::cout << " " << n << " " << f << " ";
 		for (int i = 0; i<num; i++) {
-			if (check_random_graph(n,p)) {
+
+			if (check_random_graph(n,m)) {
 				count++;
 			}
 		}
-		std::cout << "f " << f << ", " << (float)count/num << std::endl;
+		std::cout << (float)count/num << std::endl;
 	}
 }
 
 int main(int argc, char* argv[]) {
-	graph_statistics();
+	auto_ptr<ugraph> u = test_fc_two_children();
+	to_file(*u,"simple");
+	check_graph(*u);
 	return 0;
 }

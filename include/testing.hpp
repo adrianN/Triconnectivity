@@ -31,5 +31,9 @@ std::auto_ptr<leda::ugraph> test_zwei(void);
 std::auto_ptr<leda::ugraph> test_drei(void);
 std::auto_ptr<leda::ugraph> test_four(void);
 std::auto_ptr<leda::ugraph> test_five(void);
+std::auto_ptr<leda::ugraph> test_root_on_one_cycle(void);
+std::auto_ptr<leda::ugraph> test_root_two_children(void);
+std::auto_ptr<leda::ugraph> test_fc_two_children(void);
+
 
 #endif /* TESTING_HPP_ */

@@ -6,8 +6,8 @@
 #include "LEDA/graph/ugraph.h"
 #define RECORD_NODES
 
-//#define COUT
-//#define DOT_OUTPUT
+#define COUT
+#define DOT_OUTPUT
 
 using namespace leda;
 
@@ -32,7 +32,7 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph, node startnode =
 	parent(graph, NULL),
 	inner_of_chain(graph,-1),
 	is_real(graph,false),
-	caterpillars(new caterpillar[graph.number_of_edges() - graph.number_of_nodes() +2]), //TODO not space efficient, at most #fronds/2 caterpillars
+	//caterpillars(new caterpillar[graph.number_of_edges() - graph.number_of_nodes() +2]), //TODO not space efficient, at most #fronds/2 caterpillars
 	the_graph(graph),
 	cert(new certificate(graph,this)),
 	chains_in_subdivision(0)
@@ -64,13 +64,16 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph, node startnode =
 
 	degree_three_or_more(the_graph,min_degree_vertex);
 
-	initial_dfs(startnode);
+	initial_dfs(startnode);	{
+		fstream f("graph.dot",std::ios::out);
+		dfs_tree_to_dot(f);
+	}
 	chain_decomposition();
 	check_prop_b();
-//	{
-//		fstream f("chains.dot",std::ios::out);
-//		chain_tree_to_dot(f);
-//	}
+	{
+		fstream f("chains.dot",std::ios::out);
+		chain_tree_to_dot(f);
+	}
 
 
 
@@ -80,7 +83,6 @@ schmidt_triconnectivity::schmidt_triconnectivity(ugraph& graph, node startnode =
 schmidt_triconnectivity::~schmidt_triconnectivity(void) {
 	for(unsigned int i=0; i<chains.size(); i++)
 		delete chains[i];
-	delete[] caterpillars;
 	delete[] node_at;
 }
 
@@ -99,29 +101,6 @@ void schmidt_triconnectivity::check_prop_b(void) const throw(not_triconnected_ex
 			}
 		}
 	}
-
-  /*  def check_property_B(self): # Lemma 61
-        marked = [0]
-        for i in range(self.numchains):
-        # need to process chains in good order.
-        # For example, the iopposite order will not work:
-        #  for i in range(self.numchains-1,-1,-1):
-            if self.chaintype[i] in ("3a","3b"):
-                sCi = self.s[i]
-                csCi = self.chain[sCi]
-                k = self.parent_chain[i]
-                # original:
-                while k not in marked and not \
-                    (k == csCi or sCi == self.s[k] or sCi == self.t[k]):
-                # abgewandelt:
-                # while k not in marked and k != csCi:
-                    marked.append(k)
-                    k = self.parent_chain[k]
-        for i in range(self.numchains):
-            if self.ss[i] != self.t[i] and i not in marked:
-                #print marked
-                raise NotConnected(3,"Property-B-test. "
-                        "Chain %d unmarked."%i, (self.s[i],self.t[i]))*/
 
 	for(unsigned int i=0; i<chains.size(); i++) {
 		if (!marked.member(i) && !chains[i]->is_backedge) {
@@ -806,7 +785,7 @@ void schmidt_triconnectivity::initial_dfs(node startnode) throw(not_triconnected
 		}
 		const node root = current_node;
 		inner_of_chain[root] = 0; //TODO is this so?
-		degree_three_or_more(the_graph,root);
+//		degree_three_or_more(the_graph,root);
 
 		unsigned int number_seen=1;
 		set_dfi(current_node, number_seen++);
@@ -821,7 +800,7 @@ void schmidt_triconnectivity::initial_dfs(node startnode) throw(not_triconnected
 		std::cout << "first cycle " << std::endl;
 #endif
 		edge chain1_first_edge;
-		if (!find_a_cycle_to_root(current_node, chain1_first_edge, number_seen, seen_edge, false,  1)) {
+		if (!find_a_cycle_to_root(current_node, chain1_first_edge, number_seen, seen_edge, false)) {
 			throw not_triconnected_exception("Root does not lie on a cycle", root); //root has degree >2
 		}
 
@@ -848,7 +827,7 @@ void schmidt_triconnectivity::initial_dfs(node startnode) throw(not_triconnected
 
 			inner_search_cur_node = current_node;
 			edge e;
-			if (find_a_cycle_to_root(inner_search_cur_node,e, number_seen, seen_edge, true, 2) && lca == NULL && node_b == NULL) {
+			if (find_a_cycle_to_root(inner_search_cur_node,e, number_seen, seen_edge, true) && lca == NULL && node_b == NULL) {
 #ifdef COUT
 				std::cout << "	found a cycle " << std::endl;
 #endif
@@ -862,7 +841,12 @@ void schmidt_triconnectivity::initial_dfs(node startnode) throw(not_triconnected
 			current_node = parent_node(current_node);
 
 		}
-		assert(lca!=NULL);
+		if (lca==NULL) {
+			throw not_triconnected_exception("root on only one cycle",root);
+		}
+		if (lca == root) {
+			throw not_triconnected_exception("root has more than one child",root);
+		}
 		assert(node_b!=NULL);
 		assert(target(chain2_first_edge)==node_b);
 
@@ -937,7 +921,7 @@ void schmidt_triconnectivity::mark_path(const node start, const unsigned int the
 
 		if (current_edge == NULL || belongs_to_chain[current_edge]>=0) {
 			//found an edge that belongs to a different chain, hence this chain ends here.
-			assert((the_chain == 0) || ((unsigned int)belongs_to_chain[current_edge] < the_chain && "the parent of a chain must be a chain of smaller chain number"));
+			assert(current_edge == NULL || (the_chain == 0) || ((unsigned int)belongs_to_chain[current_edge] < the_chain && "the parent of a chain must be a chain of smaller chain number"));
 			assert(current_edge != NULL || the_chain == 0);
 			assert(the_chain != 0 || current_edge == NULL);
 
@@ -1036,8 +1020,7 @@ bool schmidt_triconnectivity::find_a_cycle_to_root(
 		edge& backedge,
 		unsigned int& number_seen,
 		edge_array<bool>& seen_edge,
-		bool continue_after_found,
-		const unsigned int current_chain) throw() {
+		bool continue_after_found) throw() {
 		stack<edge> first_cycle;
 
 		/* push all neighbours of the current node */ //TODO is this necessary? Should be enough to push this node

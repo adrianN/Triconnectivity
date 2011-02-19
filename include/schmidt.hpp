@@ -38,7 +38,7 @@ class schmidt_triconnectivity {
 	node_array<bool> is_real;
 
 	std::vector<chain*> chains;
-	caterpillar* const caterpillars;
+	h_array<unsigned int, caterpillar> caterpillars;
 	ugraph& the_graph;
 	auto_ptr<certificate> cert;
 	unsigned int chains_in_subdivision;
@@ -94,7 +94,7 @@ public:
 
 	void classify_chain(const unsigned int chain_number) throw();
 
-	bool find_a_cycle_to_root(node& start_node, edge& backedge, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found, const unsigned int current_chain) throw();
+	bool find_a_cycle_to_root(node& start_node, edge& backedge, unsigned int& number_seen, edge_array<bool>& seen_edge, bool continue_after_found) throw();
 
 	void add_to_subdivision(chain* c) throw();
 

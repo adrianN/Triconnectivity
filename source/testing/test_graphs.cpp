@@ -4,6 +4,117 @@
 using namespace std;
 using namespace leda;
 
+
+
+auto_ptr<ugraph> test_fc_two_children(void) {
+	const unsigned int num_nodes = 6;
+	const unsigned int max_degree = 3;
+    auto_ptr<ugraph> g(new ugraph());
+    node nodes[num_nodes];
+    for(unsigned int i=0; i<num_nodes; i++) {
+        nodes[i] = g->new_node();
+    }
+    int edges[num_nodes][max_degree] = {
+    		{1,-1,-1},
+    		{2,4,-1},
+    		{3,0,-1},
+    		{1,0,-1},
+    		{5,0,-1},
+    		{1,0,-1}
+    };
+
+    for(unsigned int i=0; i<num_nodes; i++) {
+        for(unsigned int j=0; j<max_degree; j++) {
+            if (edges[i][j]>=0) {
+                g->new_edge(nodes[i],nodes[edges[i][j]]);
+            }
+        }
+    }
+//    {   edge_array<int> edges(*g);
+//        edge e;
+//        forall_edges(e,*g) {
+//            edges[e] = target(e)->id();
+//        }
+//        g->bucket_sort_edges(edges);
+//    }
+    return g;
+}
+
+auto_ptr<ugraph> test_root_two_children(void) {
+	const unsigned int num_nodes = 9;
+	const unsigned int max_degree = 3;
+    auto_ptr<ugraph> g(new ugraph());
+    node nodes[num_nodes];
+    for(unsigned int i=0; i<num_nodes; i++) {
+        nodes[i] = g->new_node();
+    }
+    int edges[num_nodes][max_degree] = {
+    		{1,4,-1},
+    		{2,-1,-1},
+    		{3,0,-1},
+    		{8,1,-1},
+    		{5,-1,-1},
+    		{6,-1,-1},
+    		{7,4,-1},
+    		{5,0,-1},
+    		{2,1,-1}
+    };
+
+    for(unsigned int i=0; i<num_nodes; i++) {
+        for(unsigned int j=0; j<max_degree; j++) {
+            if (edges[i][j]>=0) {
+                g->new_edge(nodes[i],nodes[edges[i][j]]);
+            }
+        }
+    }
+//    {   edge_array<int> edges(*g);
+//        edge e;
+//        forall_edges(e,*g) {
+//            edges[e] = target(e)->id();
+//        }
+//        g->bucket_sort_edges(edges);
+//    }
+    return g;
+}
+
+
+auto_ptr<ugraph> test_root_on_one_cycle(void) {
+	const unsigned int num_nodes = 9;
+	const unsigned int max_degree = 3;
+    auto_ptr<ugraph> g(new ugraph());
+    node nodes[num_nodes];
+    for(unsigned int i=0; i<num_nodes; i++) {
+        nodes[i] = g->new_node();
+    }
+    int edges[num_nodes][max_degree] = {
+    		{1,4,-1},
+    		{2,-1,-1},
+    		{3,0,-1},
+    		{8,1,-1},
+    		{5,-1,-1},
+    		{6,-1,-1},
+    		{7,4,-1},
+    		{5,4,-1},
+    		{2,1,-1}
+    };
+
+    for(unsigned int i=0; i<num_nodes; i++) {
+        for(unsigned int j=0; j<max_degree; j++) {
+            if (edges[i][j]>=0) {
+                g->new_edge(nodes[i],nodes[edges[i][j]]);
+            }
+        }
+    }
+//    {   edge_array<int> edges(*g);
+//        edge e;
+//        forall_edges(e,*g) {
+//            edges[e] = target(e)->id();
+//        }
+//        g->bucket_sort_edges(edges);
+//    }
+    return g;
+}
+
 auto_ptr<ugraph> sample_graph(void) {
     auto_ptr<ugraph> g(new ugraph());
     node nodes[13];

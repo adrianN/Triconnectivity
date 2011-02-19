@@ -11,7 +11,7 @@ certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
 	the_graph(graph),
 	decomposition(d),
 	created_by_chain(new_graph,the_graph.number_of_nodes(), -1),
-	le_edges(new_graph,the_graph.number_of_edges(), NULL),
+	le_edges(new_graph,the_graph.number_of_edges()+the_graph.number_of_nodes(), NULL),
 	orig_2_new(the_graph,NULL),
 	new_2_orig(new_graph,the_graph.number_of_nodes(),NULL),
 	edge_accounted_for(the_graph,false)
@@ -328,6 +328,10 @@ bool certificate::verify() throw() {
 				//and insert the new edge into the chain
 				assert(lists[0] == lists[1]);
 				list<edge>::item it = lists[0]->append(e1);
+
+				assert(e1!=NULL);
+				assert(graph_of(e1) == &new_graph);
+
 				le_edges[e1] = new pair<list<edge>*, list<edge>::item>(lists[0],it);
 			}
 		} break;
