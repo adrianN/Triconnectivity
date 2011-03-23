@@ -25,12 +25,9 @@ private:
 	ugraph & the_graph;
 	ugraph new_graph;
 	schmidt_triconnectivity* decomposition;
-	node_array<int> created_by_chain;
-	std::vector<list<edge>* > chains;
-	edge_array<std::pair<list<edge>*, list<edge>::item>* > le_edges;
+	std::vector<list<edge>* > paths;
+	edge_array<std::pair<list<edge>*, list<edge>::item>* > edge_items;
 	node_array<node> orig_2_new;
-	node_array<node> new_2_orig;
-	std::vector<std::pair<node,node>* > endvertices;
 	edge_array<bool> edge_accounted_for;
 
 public:

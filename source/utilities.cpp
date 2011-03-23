@@ -12,14 +12,26 @@ using std::auto_ptr;
 using std::cout;
 using std::endl;
 
-#define DETERMINISTIC_GLUE
+//#define DETERMINISTIC_GLUE
+
+void make_simple(ugraph& u) {
+	node n;
+	forall_nodes(n,u) {
+		node_array<bool> seen(u,false);
+		edge e;
+		forall_adj_edges(e,n) {
+			if (seen[opposite(e,n)])
+				u.hide_edge(e);
+			else
+				seen[opposite(e,n)] = true;
+		}
+	}
+}
 
 edge smoothen(ugraph & g, node n) {
-#ifndef NDEBUG
-	int numedges = g.number_of_edges();
-#endif
-	assert(g.degree(n) == 2);
-	node neighbours[2];
+	edge e=NULL;
+	assert(g.degree(n)==2);
+	node neighbours[2]={NULL,NULL};
 	{	unsigned int i = 0;
 		edge e;
 		forall_adj_edges(e,n) {
@@ -27,12 +39,10 @@ edge smoothen(ugraph & g, node n) {
 		}
 	}
 
-	edge e = g.new_edge(neighbours[0], neighbours[1]);
-
+	e = g.new_edge(neighbours[0], neighbours[1]);
 
 	g.del_node(n);
 
-	assert(g.number_of_edges() == numedges-1);
 	return e;
 }
 

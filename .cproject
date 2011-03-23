@@ -30,11 +30,11 @@
 <option id="gnu.cpp.compiler.option.warnings.pedantic.1965342864" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.2106247478" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.443094116" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.compiler.option.other.other.1746411118" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -Wextra -Wno-unused-parameter " valueType="string"/>
+<option id="gnu.cpp.compiler.option.other.other.1746411118" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -pthread -Wextra -Wno-unused-parameter -DLEDA_MULTI_THREAD" valueType="string"/>
 <option id="gnu.cpp.compiler.option.debugging.gprof.1881566456" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.level.461664337" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 <option id="gnu.cpp.compiler.option.optimization.flags.1147388332" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-mtune=native -march=native -fno-strict-aliasing" valueType="string"/>
-<option id="gnu.cpp.compiler.option.debugging.other.965703906" name="Other debugging flags" superClass="gnu.cpp.compiler.option.debugging.other" value="" valueType="string"/>
+<option id="gnu.cpp.compiler.option.debugging.other.965703906" name="Other debugging flags" superClass="gnu.cpp.compiler.option.debugging.other" value="-DNDEBUG" valueType="string"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1909800968" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool command="gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.c.compiler.base.1003590242" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
@@ -622,10 +622,11 @@
 <option id="gnu.cpp.compiler.option.warnings.pedantic.575211260" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.1779862144" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.2134485618" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.compiler.option.other.other.423433099" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c" valueType="string"/>
+<option id="gnu.cpp.compiler.option.other.other.423433099" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -DLEDA_MULTI_THREAD -pthread" valueType="string"/>
 <option id="gnu.cpp.compiler.option.debugging.gprof.1307214377" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.level.1167737840" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
-<option id="gnu.cpp.compiler.option.optimization.flags.1330428707" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-march=opteron -mtune=opteron" valueType="string"/>
+<option id="gnu.cpp.compiler.option.optimization.flags.1330428707" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-march=opteron -mtune=opteron -fno-strict-aliasing" valueType="string"/>
+<option id="gnu.cpp.compiler.option.debugging.other.56128107" name="Other debugging flags" superClass="gnu.cpp.compiler.option.debugging.other" value="-DNDEBUG" valueType="string"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1069553680" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool command="gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.c.compiler.base.743108090" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
@@ -1198,7 +1199,7 @@
 <folderInfo id="cdt.managedbuild.toolchain.gnu.base.1212882294.1219916336.601838640." name="/" resourcePath="">
 <toolChain errorParsers="" id="cdt.managedbuild.toolchain.gnu.base.390573498" name="cdt.managedbuild.toolchain.gnu.base" superClass="cdt.managedbuild.toolchain.gnu.base">
 <targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.1485091399" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
-<builder buildPath="${workspace_loc:/Generate Graphs/Linux GCC}" errorParsers="org.eclipse.cdt.core.MakeErrorParser" id="cdt.managedbuild.target.gnu.builder.base.1477044531" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="-1" superClass="cdt.managedbuild.target.gnu.builder.base"/>
+<builder buildPath="${workspace_loc:/Generate Graphs/Linux GCC}" errorParsers="org.eclipse.cdt.core.MakeErrorParser" id="cdt.managedbuild.target.gnu.builder.base.1477044531" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" parallelBuildOn="false" parallelizationNumber="1" superClass="cdt.managedbuild.target.gnu.builder.base"/>
 <tool id="cdt.managedbuild.tool.gnu.archiver.base.68519622" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 <tool command="g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1376020544" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
 <option id="gnu.cpp.compiler.option.include.paths.609602142" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
@@ -1209,10 +1210,11 @@
 <option id="gnu.cpp.compiler.option.warnings.pedantic.10342690" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.1081317275" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.2062408495" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.compiler.option.other.other.1019064703" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c" valueType="string"/>
+<option id="gnu.cpp.compiler.option.other.other.1019064703" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -DLEDA_MULTI_THREAD -pthread" valueType="string"/>
 <option id="gnu.cpp.compiler.option.debugging.gprof.1019528415" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.level.891950150" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
-<option id="gnu.cpp.compiler.option.optimization.flags.899833048" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-march=pentium2 -mtune=pentium2" valueType="string"/>
+<option id="gnu.cpp.compiler.option.optimization.flags.899833048" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-march=pentium2 -mtune=pentium2 -fno-strict-aliasing" valueType="string"/>
+<option id="gnu.cpp.compiler.option.debugging.other.1600987103" name="Other debugging flags" superClass="gnu.cpp.compiler.option.debugging.other" value="-DNDEBUG" valueType="string"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.177928519" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool command="gcc" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GCCErrorParser" id="cdt.managedbuild.tool.gnu.c.compiler.base.2029309963" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">

@@ -10,14 +10,17 @@ certificate::certificate(ugraph  & graph,   schmidt_triconnectivity* d) :
 	still_valid(true),
 	the_graph(graph),
 	decomposition(d),
-	created_by_chain(new_graph,the_graph.number_of_nodes(), -1),
-	le_edges(new_graph,the_graph.number_of_edges()+the_graph.number_of_nodes(), NULL),
+	edge_items(new_graph,the_graph.number_of_edges()+the_graph.number_of_nodes(), NULL),
 	orig_2_new(the_graph,NULL),
-	new_2_orig(new_graph,the_graph.number_of_nodes(),NULL),
 	edge_accounted_for(the_graph,false)
 	{}
 
 certificate::~certificate() {
+	edge e;
+	forall_edges(e,new_graph) {
+		if (edge_items[e]!=NULL)
+			delete(edge_items[e]);
+	}
 }
 
 bool certificate::add_bg_path(list<edge> const & edges) throw() {
@@ -32,13 +35,12 @@ bool certificate::add_bg_path(list<edge> const & edges) throw() {
 	node first_node = NULL;
 	node last_node = NULL;
 	node current_node = NULL;
-	chains.push_back(new list<edge>());
+	paths.push_back(new list<edge>());
 
 	unsigned int prev_created_nodes = 0;
 
 	node last=NULL,nodes[2]={NULL,NULL};
 	unsigned int num=0;
-	list<node> l;
 	edge e;
 	forall(e,edges) {
 		edge_accounted_for[e]=true;
@@ -46,22 +48,17 @@ bool certificate::add_bg_path(list<edge> const & edges) throw() {
 			nodes[0] = source(e);
 			nodes[1] = target(e);
 			num = 2;
-			l.append(source(e));
-			l.append(target(e));
+
 			last = target(e);
 		} else {
-			l.append(opposite(last,e));
 			nodes[0] = opposite(last,e);
 			nodes[1] = NULL;
 			num=1;
-			last = opposite(last,e);
+			last = opposite(last,e);	//std::vector<std::pair<node,node>* > endvertices;
 		}
 		for(unsigned int i = 0; i<num; i++) {
 
 			current_node = nodes[i];
-	#ifdef BGCOUT
-			std::cout << decomposition->dfi(current_node) << " ";
-	#endif
 			if (first_node == NULL)
 				first_node = current_node;
 
@@ -69,7 +66,6 @@ bool certificate::add_bg_path(list<edge> const & edges) throw() {
 			if (orig_2_new[current_node] == NULL) {
 				new_node = new_graph.new_node();
 				orig_2_new[current_node] = new_node;
-				new_2_orig[new_node] = current_node;
 			} else {
 				new_node = orig_2_new[current_node];
 				prev_created_nodes++;
@@ -79,24 +75,21 @@ bool certificate::add_bg_path(list<edge> const & edges) throw() {
 				node prev_node = orig_2_new[last_node];
 				assert(prev_node !=NULL);
 				edge added_edge = new_graph.new_edge(prev_node,new_node);
-				list<edge>::item it = chains.back()->append(added_edge);
-				le_edges[added_edge] = new pair<list<edge>*,list<edge>::item>(chains.back(), it);
+				list<edge>::item it = paths.back()->append(added_edge);
+				edge_items[added_edge] = new pair<list<edge>*,list<edge>::item>(paths.back(), it);
 			}
 
 			last_node = current_node;
 
 		}
-
-
 	}
 
 	// paths have only two nodes in common with the rest of the graph
-	still_valid &= chains.size() == 1 || prev_created_nodes == 2;
+	still_valid &= paths.size() == 1 || prev_created_nodes == 2;
 
 	// bg paths mustn't form cycles
 	still_valid &= first_node != last_node;
 
-	endvertices.push_back(new pair<node,node>(orig_2_new[first_node],orig_2_new[last_node]));
 #ifdef BGCOUT
 	std::cout << std::endl;
 #endif
@@ -139,8 +132,9 @@ bool certificate::verify() throw() {
 	if (!isomorphic)
 		return false;
 
-	for(int i = chains.size()-1; i>=3; i--) {
+	for(int the_path = paths.size()-1; the_path>=3; the_path--) {
 #ifdef VERIFYCOUT
+		std::cout << "Checking path " << the_path << std::endl;
 		{	node n;
 			forall_nodes(n,new_graph) {
 				std::cout <<"(" << n->id() << "," << new_graph.degree(n) << ") ";
@@ -149,10 +143,17 @@ bool certificate::verify() throw() {
 
 		}
 #endif
-		const node a = endvertices[i]->first;
-		const node b = endvertices[i]->second;
-		delete endvertices[i];
-		endvertices[i] = NULL;
+		list<edge>* current_path =paths[the_path];
+
+		if (current_path->size()!=1)
+			return false;
+
+		const edge bg_edge = current_path->Pop();
+		delete(current_path);
+		paths[the_path]=NULL;
+
+		const node a = source(bg_edge);
+		const node b = target(bg_edge);
 
 		assert(graph_of(a) == &new_graph);
 		assert(graph_of(b) == &new_graph);
@@ -161,36 +162,12 @@ bool certificate::verify() throw() {
 		unsigned int type = 0;
 		if (a_smooth) type++;
 		if (b_smooth) type++;
-#ifdef VERIFYCOUT
-		std::cout << "Checking chain " << i << " endvertices " << decomposition->dfi(new_2_orig[a]) << " (" << new_graph.degree(a) << "," << a->id() << ") " << decomposition->dfi(new_2_orig[b]) << " (" << new_graph.degree(b) << "," << b->id() << ") " << type<< " ";
-		std::cout << "edges ";
-		{ edge e;
-			forall(e, *chains[i]) {
-				std::cout << decomposition->dfi(new_2_orig[source(e)]) << " " << decomposition->dfi(new_2_orig[target(e)]) << " " ;
-			}
-			std::cout << std::endl;
-		}
-#endif
 
-		{	edge to_be_deleted;
-			forall(to_be_deleted, *chains[i]) {
-				// delete the chain
-				delete(le_edges[to_be_deleted]);
-				le_edges[to_be_deleted] = NULL;
-				assert(to_be_deleted!=NULL);
-				assert(graph_of(to_be_deleted) == &new_graph);
-				new_graph.hide_edge(to_be_deleted);
-				if (new_graph.degree(source(to_be_deleted)) == 0) {
-					assert(created_by_chain[source(to_be_deleted)] == i);
-				}
-				if (new_graph.degree(target(to_be_deleted)) == 0) {
-					assert(created_by_chain[target(to_be_deleted)] == i);
-				}
-
-			}
-			delete(chains[i]);
-			chains[i] = NULL;
-		}
+		delete(edge_items[bg_edge]);
+		edge_items[bg_edge] = NULL;
+		assert(bg_edge!=NULL);
+		assert(graph_of(bg_edge) == &new_graph);
+		new_graph.hide_edge(bg_edge);
 
 		switch(type) {
 		case 2: {		//subdivide 2, connect
@@ -207,7 +184,7 @@ bool certificate::verify() throw() {
 				}
 				i=0;
 				forall_adj_edges(e,b) {
-					b_neighbours[i++] = opposite(e,b);
+					b_neighbours[i++]  = opposite(e,b);
 				}
 			}
 
@@ -218,60 +195,55 @@ bool certificate::verify() throw() {
 			if (b_neighbours[0] < b_neighbours[1]) {
 				std::swap(b_neighbours[0], b_neighbours[1]);
 			}
-			if (i!=3 && a_neighbours[0] == b_neighbours[0] && a_neighbours[1] == b_neighbours[1]) {
+			if (the_path>3 && a_neighbours[0] == b_neighbours[0] && a_neighbours[1] == b_neighbours[1]) {
 #ifndef NDEBUG
 				std::cout << "chain between parallel links"<< std::endl;
 #endif
 				return false;
-			} else if(i==3 && !(a_neighbours[0] == b_neighbours[0] && a_neighbours[1] == b_neighbours[1])) {
+			} else if(the_path==3 && !(a_neighbours[0] == b_neighbours[0] && a_neighbours[1] == b_neighbours[1])) {
 #ifndef NDEBUG
 				std::cout << "chain 3 does not run between parallel links" << std::endl;
 #endif
 				return false;
 			}
-			// update le_edges and the chains
+			// update edge_items and the paths
 #ifdef VERIFYCOUT
 			std::cout << "updating" << std::endl;
 #endif
-			{ 	list<edge>* lists[2][2];
+			{ 	list<edge>* lists[2]={NULL,NULL};
+				edge es[2] = {NULL,NULL};
 
-				//first remove the smoothened edges from the chains
-				{	unsigned int i=0, j=0;
+				//first remove the smoothened edges from the paths
+				{	unsigned int j=0;
 					edge e;
 					forall_adj_edges(e,a) {
-						pair<list<edge>*, list<edge>::item>* p = le_edges[e];
+						pair<list<edge>*, list<edge>::item>* p = edge_items[e];
 						p->first->del_item(p->second);
-						lists[j][i++] = p->first;
-						delete(le_edges[e]);
+						lists[j] = p->first;
+						delete(edge_items[e]);
+						edge_items[e]=NULL;
 					}
-					assert(i==2);
+					es[0] = smoothen(new_graph,a);
 					j++;
-					i=0;
 					forall_adj_edges(e,b) {
-						pair<list<edge>*, list<edge>::item>* p = le_edges[e];
+						pair<list<edge>*, list<edge>::item>* p = edge_items[e];
 						p->first->del_item(p->second);
-						lists[j][i++] = p->first;
-						delete(le_edges[e]);
+						lists[j] = p->first;
+						delete(edge_items[e]);
+						edge_items[e]=NULL;
 					}
-					assert(j==1);
 				}
 
-				// then remove them from the graph
-				edge es[2] = {NULL,NULL};
-				es[0] = smoothen(new_graph,a);
 				es[1] = smoothen(new_graph,b);
 
-				//and insert the new edges into the chains
+				//and insert the new edges into the paths
 				for(unsigned int i = 0; i<2; i++) {
-#ifdef VERIFYCOUT
-					std::cout << i << " belonged to " << lists[i][0] << " " << lists[i][1] << std::endl;
-#endif
-					assert(lists[i][1] == lists[i][0]);
-					list<edge>::item it = lists[i][0]->append(es[i]);
+					list<edge>::item it = lists[i]->append(es[i]);
 					assert(es[i] != NULL);
 					assert(graph_of(es[i]) == &new_graph);
-					le_edges[es[i]] = new pair<list<edge>*,list<edge>::item>(lists[i][0],it);
+					edge_items[es[i]] = new pair<list<edge>*,list<edge>::item>(lists[i],it);
 				}
+
 			}
 
 		} break;
@@ -303,36 +275,34 @@ bool certificate::verify() throw() {
 				return false; //third node is one of the endpoints
 			}
 
-			//update le_edges and the chains
+			//update edge_items and the paths
 			//first delete smoothened edges from the chain
 #ifdef VERIFYCOUT
 			std::cout << "updating" << std::endl;
 #endif
 
-			{ 	list<edge>* lists[2];
+			{ 	list<edge>* l=NULL;
 
-				{	unsigned int i = 0;
-					edge e;
+				{	edge e;
 					forall_adj_edges(e,sub) {
-						pair<list<edge>*, list<edge>::item>* p = le_edges[e];
+						pair<list<edge>*, list<edge>::item>* p = edge_items[e];
 						p->first->del_item(p->second);
-						lists[i++] = p->first;
-						delete(le_edges[e]);
+						l = p->first;
+						delete(edge_items[e]);
+						edge_items[e]=NULL;
 					}
-					assert(i==2);
 				}
 
 				//then from the graph
 				edge e1 = smoothen(new_graph,sub);
 
 				//and insert the new edge into the chain
-				assert(lists[0] == lists[1]);
-				list<edge>::item it = lists[0]->append(e1);
+				list<edge>::item it = l->append(e1);
 
 				assert(e1!=NULL);
 				assert(graph_of(e1) == &new_graph);
 
-				le_edges[e1] = new pair<list<edge>*, list<edge>::item>(lists[0],it);
+				edge_items[e1] = new pair<list<edge>*, list<edge>::item>(l,it);
 			}
 		} break;
 		case 0: {		//connect two is always okay, because of the checks we performed before adding this chain.
@@ -345,25 +315,30 @@ bool certificate::verify() throw() {
 		}
 	}
 
-		//TODO check 0,1,2
-for(int i=0; i<3; i++ ) {
-		{	edge to_be_deleted;
-			forall(to_be_deleted, *chains[i]) {
-				// delete the chain
-				delete(le_edges[to_be_deleted]);
-				le_edges[to_be_deleted] = NULL;
-				assert(to_be_deleted!=NULL);
-				assert(graph_of(to_be_deleted) == &new_graph);
-				new_graph.hide_edge(to_be_deleted);
-			}
-			delete(chains[i]);
-			chains[i] = NULL;
-		}
-//		const node a = endvertices[i]->first;
-//		const node b = endvertices[i]->second;
-		delete endvertices[i];
-		endvertices[i] = NULL;
-}
+
+	node remaining_nodes[2]={NULL,NULL};
+	for(int the_path=2; the_path>=0; the_path-- ) {
+		list<edge>* current_path = paths[the_path];
+		edge bg_edge = current_path->Pop();
+		delete(paths[the_path]);
+		paths[the_path]=NULL;
+		delete(edge_items[bg_edge]);
+		edge_items[bg_edge] = NULL;
+		node endvertices[2];
+		endvertices[0] = source(bg_edge);
+		endvertices[1] = target(bg_edge);
+		if (endvertices[0] < endvertices[1])
+			std::swap(endvertices[0], endvertices[1]);
+		for(unsigned int i = 0; i<2; i++)
+			if (remaining_nodes[i] == NULL)
+				remaining_nodes[i] = endvertices[i];
+
+		for(unsigned int i=0; i<2; i++)
+			if (endvertices[i] != remaining_nodes[i])
+				return false;
+
+		new_graph.hide_edge(bg_edge);
+	}
 	return true;
 #endif
 }

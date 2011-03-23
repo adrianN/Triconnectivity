@@ -17,20 +17,22 @@
 void to_dot(const leda::ugraph& g, std::ostream& output);
 void simple_to_dot(const leda::ugraph& g, std::ostream& output);
 
+void make_simple(leda::ugraph& u);
+
 std::istream& operator>>(std::istream& input, leda::ugraph& graph);
 leda::node merge_nodes(leda::ugraph& g, leda::node one, leda::node two);
 leda::node merge_nodes(leda::ugraph& g, leda::slist<leda::node> nodes);
 void glue_graphs(leda::ugraph& one, leda::ugraph& two, leda::node& merge_one, leda::node& merge_two);
 void write_planar_code(leda::ugraph& g, std::ostream& out);
 std::auto_ptr< leda::ugraph > triconnected_graph(const unsigned int n);
-leda::slist<unsigned int> bucket_sort(leda::slist<unsigned int> elems, unsigned int start,  unsigned int end);
+//leda::slist<unsigned int> bucket_sort(leda::slist<unsigned int> const & elems, unsigned int start,  unsigned int end);
 bool graphs_isomorphic(leda::ugraph  & g1, leda::ugraph  & g2, leda::node_array<leda::node> const & map_2_to_1);
 leda::edge smoothen(leda::ugraph& g, leda::node n); //returns the new edge
 template<typename A> A identity(const A& a) { return a; }
 
 enum ord { asc, dsc};
 
-template <typename A, ord o> leda::slist<A> unique_bucket_sort(leda::slist<A> elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
+template <typename A, ord o> leda::slist<A> unique_bucket_sort(leda::slist<A> const & elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
 	A* buckets = new A[end-start+1];
 	bool* set = new bool[end-start+1];
 	for(unsigned int i = 0; i<end-start+1; i++) {
@@ -63,7 +65,7 @@ template <typename A, ord o> leda::slist<A> unique_bucket_sort(leda::slist<A> el
 	return ret;
 }
 
-template <typename A, ord o> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
+template <typename A, ord o> leda::slist<A> bucket_sort(leda::slist<A> const & elems, unsigned int (*to_int)(const A&), unsigned int start,  unsigned int end) {
 	leda::slist<A>* buckets = new leda::slist<A>[end-start+1];
 	A elem;
 	forall(elem, elems) {
@@ -90,9 +92,9 @@ template <typename A, ord o> leda::slist<A> bucket_sort(leda::slist<A> elems, un
 }
 
 
-template <typename A, ord o1, ord o2> leda::slist<A> bucket_sort(leda::slist<A> elems, unsigned int (*to_int_first)(const A&), unsigned int (*to_int_second)(const A&), unsigned int start,  unsigned int end) {
-	elems = bucket_sort<A,o2>(elems,to_int_second,start,end);
-	return bucket_sort<A,o1>(elems,to_int_first,start,end);
+template <typename A, ord o1, ord o2> leda::slist<A> bucket_sort(leda::slist<A> const & elems, unsigned int (*to_int_first)(const A&), unsigned int (*to_int_second)(const A&), unsigned int start,  unsigned int end) {
+	leda::slist<A> elems2 = bucket_sort<A,o2>(elems,to_int_second,start,end);
+	return bucket_sort<A,o1>(elems2,to_int_first,start,end);
 }
 
 template <typename A> void to_dot(const leda::ugraph& g, const leda::node_array<A>& labels, std::ostream& out) {

@@ -77,14 +77,14 @@ public:
 		}
 	};
 
-	inline void add_to_type3(chain* c)  {
+	inline void add_to_type3_of(chain* c)  {
 		assert(get_type() == three_a || get_type() == three_b);
 		assert(delete_from_list == NULL);
 		delete_from_list = &(c->type3);
 		delete_from_item = delete_from_list->append(this);
 	};
 
-	void set_type(chain_type t)  {
+	inline void set_type(chain_type t)  {
 		the_type = t;
 		if (parent!=NULL) {
 			switch(get_type()) {
@@ -99,7 +99,7 @@ public:
 		}
 	};
 
-	chain_type get_type(void) const  {
+	inline chain_type get_type(void) const  {
 		return the_type;
 	};
 

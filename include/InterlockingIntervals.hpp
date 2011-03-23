@@ -22,8 +22,8 @@ using namespace std;
 using namespace leda;
 
 
-//#define PRINT
-//#define OUTPUT_DOT
+#define PRINT
+#define OUTPUT_DOT
 
 template <typename A> class interval{
 public:
@@ -220,7 +220,10 @@ private:
 			interval<A>* cur_interval = input_array[i];
 			assert(cur_interval!=NULL);
 			//fancy conditions to switch between <= and >= for different sides
-			while(!s.empty() &&	((side == 1 && s.top()->bounds[1] <= cur_interval->bounds[1]) || (side == 0 && s.top()->bounds[0] >= cur_interval->bounds[0])) ) { // < ?
+			while(!s.empty() &&	((side == 1 && s.top()->bounds[1] <= cur_interval->bounds[1]) || (side == 0 && s.top()->bounds[0] >= cur_interval->bounds[0])) ) {
+#ifdef PRINT
+				std::cout << "Pop " << s.top()->bounds[0] << " " << s.top()->bounds[1] << " " << s.top()->cont << std::endl;
+#endif
 				s.pop();
 			}
 
@@ -238,10 +241,14 @@ private:
 			const bool s0_tb_le_cb = s.empty() || (side == 0 && s.top()->bounds[1] < cur_interval->bounds[1]); // t.b < c.b
 
 			if (!s.empty() && ((s1_ta_le_cb && s1_ca_le_ta) || ( s0_ca_le_tb && s0_tb_le_cb))) {
-				//std::cout << cur_interval << " overlaps " << s.top() << " " << side << std::endl;
+#ifdef PRINT
+				std::cout << cur_interval << " overlaps " << s.top() << " " << side << std::endl;
+#endif
 				g.new_edge(cur_interval->represented_by, s.top()->represented_by); //top becomes parent
 			}
-			//std::cout << "\tpush " << cur_interval << std::endl;
+#ifdef PRINT
+			std::cout << "\tpush " << cur_interval << std::endl;
+#endif
 			s.push(cur_interval);
 		}
 	}
