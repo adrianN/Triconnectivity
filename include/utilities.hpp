@@ -18,6 +18,7 @@ void to_dot(const leda::ugraph& g, std::ostream& output);
 void simple_to_dot(const leda::ugraph& g, std::ostream& output);
 
 void make_simple(leda::ugraph& u);
+bool are_connected(leda::node u, leda::node v);
 
 std::istream& operator>>(std::istream& input, leda::ugraph& graph);
 leda::node merge_nodes(leda::ugraph& g, leda::node one, leda::node two);

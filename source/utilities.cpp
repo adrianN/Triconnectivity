@@ -14,6 +14,14 @@ using std::endl;
 
 //#define DETERMINISTIC_GLUE
 
+bool are_connected(node u, node v) {
+	node w;
+	forall_adj_nodes(w,u) {
+		if (w==v) return true;
+	}
+	return false;
+}
+
 void make_simple(ugraph& u) {
 	node n;
 	forall_nodes(n,u) {

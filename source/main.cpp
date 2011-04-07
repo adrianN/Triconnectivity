@@ -20,6 +20,10 @@
 #include "LEDA/system/timer.h"
 #include <iostream>
 #include <cmath>
+#include <algorithm>
+#include <LEDA/geo/point_set.h>
+#include <LEDA/geo/point.h>
+#include <LEDA/geo/point_dictionary.h>
 
 using namespace leda;
 using namespace std;
@@ -234,6 +238,122 @@ void graph_statistics(int n) {
 //	}
 }
 
+void add_edges() {
+	ugraph g;
+	std::cout << "n m d\n";
+	for(int num_nodes = 1000; num_nodes < 1000000; num_nodes+=1000) {
+		int m = num_nodes;
+		for (int k=0; k<200; k++) {
+			random_simple_undirected_graph(g,num_nodes,m);
+			std::vector<node> nodes;
+			node n;
+			forall_nodes(n,g) {
+				nodes.push_back(n);
+			}
+			random_source r(0,nodes.size()-1);
+			bool added=false;
+			do {
+				added=false;
+				node n;
+				forall_nodes(n,g) {
+					if (g.degree(n) <3) {
+						added=true;
+						node u = n;
+						while(u==n || are_connected(n,u)) {
+							int un;
+							r >> un;
+							u = nodes[un];
+						}
+						g.new_edge(n,u);
+						break;
+					}
+				}
+
+			} while(added);
+			forall_nodes(n,g) {
+				if (g.degree(n) < 3) {
+					std::cout << "DRAMA";
+					exit(0);
+				}
+			}
+			int d = 0;
+			node s1,s2;
+			while(!hopcroft_tarjan_is_triconnected_nc(g,s1,s2)) {
+				int un=0,vn=0;
+				while(un==vn) {
+				r >> un;
+				r >> vn;
+				}
+				g.new_edge(nodes[un],nodes[vn]);
+				d++;
+			}
+			std::cout << g.number_of_nodes() << " " << g.number_of_edges() << " " << d << std::endl;
+		}
+	}
+}
+
+
+void remove_edges() {
+	for(unsigned int num_nodes=4; num_nodes<10; num_nodes+=1) {
+		for(int k =0; k < 10 ; k++) {
+			ugraph g;
+			node s1,s2;
+			bool tr=false;
+//			int m = num_nodes*(0.5*log(num_nodes)+1.5*log(log(num_nodes)) -0.8);
+			int m = ((num_nodes-1)*num_nodes)/2;
+			do {
+				g.clear();
+				random_simple_undirected_graph(g,num_nodes,m);
+				tr = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
+//				std::cout << tr << std::endl;
+			} while(!tr);
+			to_file(g,"ausgang");
+			std::vector<edge> edges;
+			edge e;
+			forall_edges(e,g) {
+				if (g.degree(source(e)) >3 && g.degree(target(e)) > 3) {
+					edges.push_back(e);
+				}
+			}
+			std::random_shuffle(edges.begin(), edges.end());
+
+			bool triconnected = true;
+			unsigned int i=0;
+			int c = 1;
+			while(triconnected) {
+				edge e=NULL;
+				while(i<edges.size() && (g.degree(source(edges[i]))<=3 || g.degree(target(edges[i]))<=3)) {
+					i++;
+				}
+				if (i==edges.size()) {
+					edge e;
+					forall_edges(e,g) {
+						if (!(g.degree(source(e))==3 || g.degree(target(e)) == 3)) {
+							std::cout << "badumm";
+							exit(0);
+						}
+					}
+					c=0;
+					break;
+				}
+				e = edges[i];
+				i++;
+				assert(g.degree(source(e)) > 3 && g.degree(target(e)) > 3);
+				g.del_edge(e);
+				std::cout << "del " << source(e)->id() << " " << target(e) ->id() << std::endl;
+//				std::cout << g.number_of_edges() << std::endl;
+				triconnected = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
+			}
+			if (!triconnected) {
+				to_file(g,"uebrig");
+				std::cout << "oho" << std::endl;
+				exit(0);
+			}
+			std::cout << g.number_of_nodes() << " "  << g.number_of_edges() << " " << c << " " << triconnected << std::endl;
+		}
+	}
+}
+
 void check_convex_hull(int n) {
 	random_source r;
 	for(unsigned int i=0; i<50; i++) {
@@ -324,6 +444,42 @@ void density_one_graph(int m) {
 	}
 }
 
+void geometric_graphs(int n) {
+	for(int k=1; k<log(n)+1; k++) {
+	for(int i=0; i<200; i++) {
+		list<point> points;
+		random_points_in_square(n,n,points);
+		d2_dictionary<double,double,node> nodes;
+		ugraph g;
+		{point p;
+		forall(p,points) {
+			nodes.insert(p.xcoord(),p.ycoord(), g.new_node());
+		}
+		}
+		point_set set(points);
+		point p;
+		forall(p,points) {
+			list<node> crappy_neighbours = set.nearest_neighbors(p,k+1);
+			node n;
+			crappy_neighbours.pop();
+			list<point> neighbours;
+			forall(n,crappy_neighbours) {
+				neighbours.append(set.pos(n));
+			}
+			point q;
+			forall(q,neighbours) {
+				g.new_edge(nodes[nodes.lookup(p.xcoord(),p.ycoord())],nodes[nodes.lookup(q.xcoord(),q.ycoord())]);
+			}
+		}
+		make_simple(g);
+		//to_file(g,"blubb");
+		node s1=NULL,s2=NULL;
+		bool tconn = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
+		int conn = tconn? 3 : (s1!=s2 ? 2 : (s1 !=NULL ? 1 : 0));
+		std::cout << g.number_of_nodes() << " " << g.number_of_edges() << " " << k << " " << tconn <<  " " << conn << "\n";
+	}
+	}
+}
 
 int main(int argc, char* argv[]) {
 	int n = 100;
@@ -331,7 +487,11 @@ int main(int argc, char* argv[]) {
 		istringstream i(argv[1]);
 		i >> n;
 	}
-	check_intervals();
+
+//	geometric_graphs(n);
+//	remove_edges();
+	add_edges();
+//	check_intervals();
 //	check_dense_graphs(n);
 //	density(n);
 //	density_one_graph(n);
