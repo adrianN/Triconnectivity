@@ -3,6 +3,7 @@
 #include <ostream>
 #include <vector>
 #include <memory>
+#include "utilities.hpp"
 
 using namespace leda;
 using std::endl;
@@ -13,6 +14,33 @@ using std::cout;
 using std::endl;
 
 //#define DETERMINISTIC_GLUE
+
+void edge_connectivity_reduction(const ugraph& start, ugraph& target) {
+	edge_array<node> edge_nodes(start,NULL);
+	node n;
+	forall_nodes(n,start) {
+		node u = target.new_node();
+		edge e;
+		edge prev = NULL;
+		node first_edge_node = NULL;
+		node last_edge_node;
+		forall_adj_edges(e,n) {
+			if (edge_nodes[e] == NULL) {
+				edge_nodes[e] = target.new_node();
+			}
+			last_edge_node=edge_nodes[e];
+			if (first_edge_node == NULL)
+				first_edge_node = last_edge_node;
+			target.new_edge(u,last_edge_node);
+			if (prev!=NULL)
+				target.new_edge(last_edge_node,edge_nodes[prev]);
+			prev=e;
+		}
+		target.new_edge(first_edge_node,last_edge_node);
+	}
+
+	make_simple(target);
+}
 
 bool are_connected(node u, node v) {
 	node w;

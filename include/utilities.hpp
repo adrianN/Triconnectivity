@@ -30,6 +30,7 @@ std::auto_ptr< leda::ugraph > triconnected_graph(const unsigned int n);
 bool graphs_isomorphic(leda::ugraph  & g1, leda::ugraph  & g2, leda::node_array<leda::node> const & map_2_to_1);
 leda::edge smoothen(leda::ugraph& g, leda::node n); //returns the new edge
 template<typename A> A identity(const A& a) { return a; }
+void edge_connectivity_reduction(const leda::ugraph& start, leda::ugraph& target);
 
 enum ord { asc, dsc};
 

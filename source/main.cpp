@@ -445,41 +445,72 @@ void density_one_graph(int m) {
 }
 
 void geometric_graphs(int n) {
-	for(int k=1; k<log(n)+1; k++) {
+	const int max_k = std::min(n-1,(int)(5*log(n)+1));
+
 	for(int i=0; i<200; i++) {
 		list<point> points;
 		random_points_in_square(n,n,points);
 		d2_dictionary<double,double,node> nodes;
 		ugraph g;
-		{point p;
-		forall(p,points) {
-			nodes.insert(p.xcoord(),p.ycoord(), g.new_node());
-		}
-		}
+
 		point_set set(points);
-		point p;
+		while(set.points().size() < n) {
+			point p;
+			random_point_in_square(p,n);
+			set.insert(p);
+		}
+		points = set.points();
+		int poi = 0;
+		{point p;
+
 		forall(p,points) {
-			list<node> crappy_neighbours = set.nearest_neighbors(p,k+1);
+			node n = g.new_node();
+			nodes.insert(p.xcoord(),p.ycoord(), n);
+		}
+		}
+		point p;
+
+		node_array<list<node> > neighbour_list(g);
+
+		forall(p,points) {
+			node v = nodes[nodes.lookup(p.xcoord(),p.ycoord())];
+			list<node> crappy_neighbours = set.nearest_neighbors(p,max_k+1);
+
 			node n;
 			crappy_neighbours.pop();
-			list<point> neighbours;
+			list<node> neighbours;
 			forall(n,crappy_neighbours) {
-				neighbours.append(set.pos(n));
+				point x = set.pos(n);
+				node u = nodes[nodes.lookup(x.xcoord(),x.ycoord())];
+				neighbours.append(u);
 			}
-			point q;
-			forall(q,neighbours) {
-				g.new_edge(nodes[nodes.lookup(p.xcoord(),p.ycoord())],nodes[nodes.lookup(q.xcoord(),q.ycoord())]);
-			}
+
+			neighbour_list[v] = neighbours;
 		}
-		make_simple(g);
-		//to_file(g,"blubb");
-		node s1=NULL,s2=NULL;
-		bool tconn = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
-		int conn = tconn? 3 : (s1!=s2 ? 2 : (s1 !=NULL ? 1 : 0));
-		std::cout << g.number_of_nodes() << " " << g.number_of_edges() << " " << k << " " << tconn <<  " " << conn << "\n";
-	}
+
+		for(int k=1; k<max_k; k++) {
+			node n;
+			forall_nodes(n,g) {
+				g.new_edge(n,neighbour_list[n].pop());
+			}
+
+			make_simple(g);
+			//to_file(g,"blubb");
+			node s1=NULL,s2=NULL;
+			bool tconn = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
+			int conn = tconn? 3 : (s1!=s2 ? 2 : (s1 !=NULL ? 1 : 0));
+			std::cout << g.number_of_nodes() << " " << g.number_of_edges() << " " << k << " " << tconn <<  " " << conn << "\n";
+		}
 	}
 }
+
+void testRed() {
+	auto_ptr<ugraph> k = k4();
+	ugraph g;
+	edge_connectivity_reduction(*k,g);
+	to_file(g,"reduced");
+}
+
 
 int main(int argc, char* argv[]) {
 	int n = 100;
@@ -488,9 +519,10 @@ int main(int argc, char* argv[]) {
 		i >> n;
 	}
 
+	testRed();
 //	geometric_graphs(n);
 //	remove_edges();
-	add_edges();
+//	add_edges();
 //	check_intervals();
 //	check_dense_graphs(n);
 //	density(n);
