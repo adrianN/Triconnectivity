@@ -32,7 +32,7 @@ bool graphs_isomorphic(leda::ugraph  & g1, leda::ugraph  & g2, leda::node_array<
 leda::edge smoothen(leda::ugraph& g, leda::node n); //returns the new edge
 template<typename A> A identity(const A& a) { return a; }
 void edge_connectivity_reduction(const leda::ugraph& start, leda::ugraph& target);
-void edge_connectivity_reduction(const leda::ugraph& start, leda::ugraph& target, leda::node_array<bool>& is_edge_node, leda::node_array<leda::node>& node_nodes);
+void edge_connectivity_reduction(const leda::ugraph& start, leda::ugraph& target, leda::node_array<bool>& is_edge_node, leda::node_array<leda::node>& node_nodes, leda::edge_array<leda::node>& edge_nodes);
 
 enum ord { asc, dsc};
 

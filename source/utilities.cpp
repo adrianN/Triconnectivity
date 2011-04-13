@@ -1,5 +1,6 @@
 #include "triconnectivity.hpp"
 #include "LEDA/core/slist.h"
+#include "LEDA/graph/node_set.h"
 #include <ostream>
 #include <vector>
 #include <memory>
@@ -33,25 +34,65 @@ bool is_wheel_graph_hub(const ugraph& g, node v) {
 void edge_connectivity_reduction(const ugraph& start, ugraph& target) {
 	node_array<bool> is_edge_node(target,start.number_of_edges()+3,false); //unknown why +3 is necessary. no more than number_of_edges many edge nodes created.
 	node_array<node> node_nodes(start,NULL);
+	edge_array<node> edge_nodes(start,NULL);
 	std::cout<<start.number_of_edges() << std::endl;
-	edge_connectivity_reduction(start,target,is_edge_node,node_nodes);
+	
+	edge_connectivity_reduction(start,target,is_edge_node,node_nodes,edge_nodes);
+	
 	//check
-
+#ifndef NDEBUG
 	node n;
 	forall_nodes(n,start) {
-		assert(node_nodes[n]!=NULL);
-		assert(start.degree(n)==target.degree(node_nodes[n]));
-		assert(is_wheel_graph_hub(target,node_nodes[n]));
+		assert(node_nodes[n]!=NULL); //all nodes mapped
+		assert(start.degree(n)==target.degree(node_nodes[n])); //proper degree
+		assert(is_wheel_graph_hub(target,node_nodes[n])); //and at center of wheel graph
 		node a;
-		forall_adj_nodes(a,n) {
+		node_set touched_wheels(target);
+		forall_adj_nodes(a,node_nodes[n]) { //all neighbours are edge nodes
 			assert(is_edge_node[a]);
+			node nn;
+			forall_adj_nodes(nn,a) { // two wheels touch at at most one edge node
+				if (is_edge_node[nn] || nn==node_nodes[n]) {
+					continue;
+				}
+
+				assert(!touched_wheels.member(nn));
+				touched_wheels.insert(nn);
+			}
 		}
 	}
+	
+	int num_edge_nodes = 0;
+	
+	forall_nodes(n,target) {
+		if (is_edge_node[n])
+			num_edge_nodes++;
+	}
+	
+	assert(start.number_of_edges() == num_edge_nodes);
+	
+	edge e;
+	forall_edges(e,start) {
+		node u = start.source(e);
+		node v = start.target(e);
+		node en = edge_nodes[e];
+		int adj_node_nodes = 0;
+		node n;
+		forall_adj_nodes(n,en) {
+			if (is_edge_node[n])
+				continue;
+			
+			adj_node_nodes++;
+			assert(n==node_nodes[u] || n==node_nodes[v]);
+		}
+		assert(adj_node_nodes==2);
+	}
+#endif
 }
 
-void edge_connectivity_reduction(const ugraph& start, ugraph& target, node_array<bool>& is_edge_node, node_array<node>& node_nodes) {
+void edge_connectivity_reduction(const ugraph& start, ugraph& target, node_array<bool>& is_edge_node, node_array<node>& node_nodes, edge_array<node>& edge_nodes) {
 	node n;
-	edge_array<node> edge_nodes(start,NULL);
+
 	int numedgenodes=0;
 	forall_nodes(n,start) {
 		node u = target.new_node();
