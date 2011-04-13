@@ -2419,7 +2419,7 @@
 <option id="gnu.cpp.compiler.option.warnings.pedantic.1217331674" name="Pedantic (-pedantic)" superClass="gnu.cpp.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.warnings.toerrors.435662430" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" value="true" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.prof.947268294" name="Generate prof information (-p)" superClass="gnu.cpp.compiler.option.debugging.prof" value="false" valueType="boolean"/>
-<option id="gnu.cpp.compiler.option.other.other.1719569778" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -Wextra -Wno-unused-parameter" valueType="string"/>
+<option id="gnu.cpp.compiler.option.other.other.1719569778" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -Wextra -Wno-unused-parameter -DLEDA_MULTI_THREAD" valueType="string"/>
 <option id="gnu.cpp.compiler.option.debugging.gprof.2061688498" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" value="false" valueType="boolean"/>
 <option id="gnu.cpp.compiler.option.debugging.level.839017972" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level"/>
 <option id="gnu.cpp.compiler.option.optimization.flags.2109018695" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="" valueType="string"/>

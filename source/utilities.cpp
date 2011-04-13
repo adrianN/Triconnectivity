@@ -15,18 +15,56 @@ using std::endl;
 
 //#define DETERMINISTIC_GLUE
 
+bool is_wheel_graph_hub(const ugraph& g, node v) {
+	node first = g.opposite(g.first_adj_edge(v),v);
+	node u=NULL;
+	node prev=first;
+	forall_adj_nodes(u,v) {
+		if (prev!=u && !are_connected(u,prev)) {
+			return false;
+		}
+		prev = u;
+	}
+	assert(prev!=NULL);
+	return are_connected(prev,first);
+
+}
+
 void edge_connectivity_reduction(const ugraph& start, ugraph& target) {
-	edge_array<node> edge_nodes(start,NULL);
+	node_array<bool> is_edge_node(target,start.number_of_edges()+3,false); //unknown why +3 is necessary. no more than number_of_edges many edge nodes created.
+	node_array<node> node_nodes(start,NULL);
+	std::cout<<start.number_of_edges() << std::endl;
+	edge_connectivity_reduction(start,target,is_edge_node,node_nodes);
+	//check
+
 	node n;
 	forall_nodes(n,start) {
+		assert(node_nodes[n]!=NULL);
+		assert(start.degree(n)==target.degree(node_nodes[n]));
+		assert(is_wheel_graph_hub(target,node_nodes[n]));
+		node a;
+		forall_adj_nodes(a,n) {
+			assert(is_edge_node[a]);
+		}
+	}
+}
+
+void edge_connectivity_reduction(const ugraph& start, ugraph& target, node_array<bool>& is_edge_node, node_array<node>& node_nodes) {
+	node n;
+	edge_array<node> edge_nodes(start,NULL);
+	int numedgenodes=0;
+	forall_nodes(n,start) {
 		node u = target.new_node();
+		node_nodes[n] = u;
 		edge e;
 		edge prev = NULL;
 		node first_edge_node = NULL;
-		node last_edge_node;
+		node last_edge_node=NULL;
 		forall_adj_edges(e,n) {
 			if (edge_nodes[e] == NULL) {
 				edge_nodes[e] = target.new_node();
+				numedgenodes++;
+				is_edge_node[edge_nodes[e]]=true;
 			}
 			last_edge_node=edge_nodes[e];
 			if (first_edge_node == NULL)

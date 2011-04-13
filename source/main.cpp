@@ -460,7 +460,7 @@ void geometric_graphs(int n) {
 			set.insert(p);
 		}
 		points = set.points();
-		int poi = 0;
+		//int poi = 0;
 		{point p;
 
 		forall(p,points) {
