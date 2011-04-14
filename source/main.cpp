@@ -24,6 +24,7 @@
 #include <LEDA/geo/point_set.h>
 #include <LEDA/geo/point.h>
 #include <LEDA/geo/point_dictionary.h>
+#include <list>
 
 using namespace leda;
 using namespace std;
@@ -357,7 +358,7 @@ void remove_edges() {
 void check_convex_hull(int n) {
 	random_source r;
 	for(unsigned int i=0; i<50; i++) {
-	list<d3_rat_point> points;
+	leda::list<d3_rat_point> points;
 
 	random_d3_rat_points_on_sphere(n,100000, points);
 
@@ -448,7 +449,7 @@ void geometric_graphs(int n) {
 	const int max_k = std::min(n-1,(int)(5*log(n)+1));
 
 	for(int i=0; i<200; i++) {
-		list<point> points;
+		leda::list<point> points;
 		random_points_in_square(n,n,points);
 		d2_dictionary<double,double,node> nodes;
 		ugraph g;
@@ -470,15 +471,15 @@ void geometric_graphs(int n) {
 		}
 		point p;
 
-		node_array<list<node> > neighbour_list(g);
+		node_array<leda::list<node> > neighbour_list(g);
 
 		forall(p,points) {
 			node v = nodes[nodes.lookup(p.xcoord(),p.ycoord())];
-			list<node> crappy_neighbours = set.nearest_neighbors(p,max_k+1);
+			leda::list<node> crappy_neighbours = set.nearest_neighbors(p,max_k+1);
 
 			node n;
 			crappy_neighbours.pop();
-			list<node> neighbours;
+			leda::list<node> neighbours;
 			forall(n,crappy_neighbours) {
 				point x = set.pos(n);
 				node u = nodes[nodes.lookup(x.xcoord(),x.ycoord())];
@@ -504,6 +505,75 @@ void geometric_graphs(int n) {
 	}
 }
 
+void core_is_3_connected(int num_nodes) {
+	for(int r=0; r<50; r++) {
+	for(int num_edges=num_nodes; num_edges<2*log(num_nodes)*num_nodes; num_edges+=std::max(1,(int)(log(num_nodes)*num_nodes/30))) {
+	ugraph g;
+	random_simple_undirected_graph(g,num_nodes,num_edges);
+	node_array<std::list<node>::iterator> items(g);
+	std::list<node> buckets[3];
+	assert(buckets[0].empty());
+	assert(buckets[1].empty());
+	assert(buckets[2].empty());
+	{node n;
+
+	forall_nodes(n,g) {
+		assert(graph_of(n) == &g);
+		std::list<node>::iterator it;
+		switch(g.degree(n)) {
+		case 0:
+		case 1: { it = buckets[0].insert(buckets[0].begin(), n); } break;
+		case 2: { it = buckets[1].insert(buckets[1].begin(), n); } break;
+		default: {it = buckets[2].insert(buckets[2].begin(), n); } break;
+		}
+		items[n] = it;
+	}
+	}
+
+	while(!(buckets[0].empty() && buckets[1].empty())) {
+		assert(buckets[0].size() + buckets[1].size() + buckets[2].size() == (unsigned int)g.number_of_nodes());
+
+		node n=NULL;
+		int bucket=-1;
+		if (!buckets[0].size()==0) {
+			bucket = 0;
+			n = buckets[0].front();
+			buckets[0].pop_front();
+		} else {
+			bucket = 1;
+			n = buckets[1].front();
+			buckets[1].pop_front();
+		}
+		assert(n!=NULL);
+		assert(graph_of(n) == &g);
+		assert(g.degree(n) < 3);
+		if (g.degree(n)>0) {
+			node u;
+			forall_adj_nodes(u,n) {
+				if (g.degree(u)<=3) {
+					buckets[bucket].erase(items[u]);
+					items[u] = buckets[std::max(bucket-1,0)].insert(buckets[std::max(bucket-1,0)].begin(), u);
+				}
+			}
+		}
+		g.del_node(n);
+
+	}
+
+	node n;
+	forall_nodes(n,g) {
+		assert(g.degree(n)>=3);
+	}
+	if (g.number_of_nodes() == 0)
+		continue;
+	node s1=NULL,s2=NULL;
+	bool tconn = hopcroft_tarjan_is_triconnected_nc(g,s1,s2);
+	int conn = tconn? 3 : (s1!=s2 ? 2 : (s1 !=NULL ? 1 : 0));
+	std::cout << g.number_of_nodes() << " " << g.number_of_edges() << " " << tconn <<  " " << conn << "\n";
+	}
+	}
+}
+
 void testRed() {
 	auto_ptr<ugraph> k = k4();
 	ugraph g;
@@ -519,7 +589,8 @@ int main(int argc, char* argv[]) {
 		i >> n;
 	}
 
-	testRed();
+	core_is_3_connected(n);
+//	testRed();
 //	geometric_graphs(n);
 //	remove_edges();
 //	add_edges();
