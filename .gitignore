@@ -3,3 +3,6 @@
 .cdtbuild
 .project
 .cdtproject
+.cproject
+*dot
+*txt
